@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// Regras de segurança do Firestore para o app de Medição de Chakras.
+//
+// Estratégia: todos os dados de um usuário (clientes e visitas) ficam sob
+// o caminho users/{uid}/... — inclusive as subcoleções aninhadas. A regra
+// abaixo usa {document=**} para cobrir recursivamente qualquer profundidade
+// (users/{uid}/clients/{clientId} e users/{uid}/clients/{clientId}/visits/{visitId}),
+// exigindo em todos os casos que o usuário autenticado seja o dono (uid) do
+// caminho que está tentando ler ou escrever.
+//
+// Resultado: um usuário autenticado NUNCA consegue ler ou escrever dados de
+// outro usuário, mesmo conhecendo o ID do documento.
+//
+// Como aplicar: Firebase Console > Firestore Database > Regras > cole este
+// conteúdo inteiro > Publicar. (Detalhes no README.md.)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

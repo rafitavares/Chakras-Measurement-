@@ -1,0 +1,14 @@
+{
+  "name": "Medição de Chakras",
+  "short_name": "Chakras",
+  "description": "Registro e evolução de medições de chakras pelo método de leitura com pêndulo.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f3fb",
+  "theme_color": "#5b6fd6",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

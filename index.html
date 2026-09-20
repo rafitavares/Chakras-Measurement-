@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Medição de Chakras</title>
+<meta name="description" content="Registro e evolução de medições de chakras pelo método de leitura com pêndulo." />
+<meta name="theme-color" content="#5b6fd6" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<header id="app-header" class="app-header">
+  <button id="btn-back" class="icon-btn" hidden aria-label="Voltar">&larr;</button>
+  <h1 id="header-title">Medição de Chakras</h1>
+  <button id="btn-logout" class="icon-btn" hidden aria-label="Sair">Sair</button>
+</header>
+
+<main id="app-main">
+
+  <!-- LOGIN -->
+  <section id="screen-login" class="screen">
+    <div class="card card--centered">
+      <h2>Entrar</h2>
+      <p class="muted">Acesso restrito ao terapeuta responsável.</p>
+      <form id="form-login">
+        <label>E-mail
+          <input type="email" id="login-email" required autocomplete="username" />
+        </label>
+        <label>Senha
+          <input type="password" id="login-password" required autocomplete="current-password" />
+        </label>
+        <p id="login-error" class="form-error" hidden></p>
+        <button type="submit" class="btn btn--primary btn--block">Entrar</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- LISTA DE CLIENTES -->
+  <section id="screen-clients" class="screen">
+    <div id="clients-list" class="list"></div>
+    <p id="clients-empty" class="muted centered" hidden>Nenhum cliente cadastrado ainda.</p>
+    <button id="btn-new-client" class="fab" aria-label="Novo cliente">+</button>
+  </section>
+
+  <!-- FORM DE CLIENTE (novo / editar) -->
+  <section id="screen-client-form" class="screen">
+    <form id="form-client" class="card">
+      <label>Nome *
+        <input type="text" id="client-name" required />
+      </label>
+      <label>Data de nascimento
+        <input type="date" id="client-birthdate" />
+      </label>
+      <label>Queixa / observações gerais
+        <textarea id="client-complaint" rows="3"></textarea>
+      </label>
+      <label>Contato
+        <input type="text" id="client-contact" placeholder="Telefone, e-mail..." />
+      </label>
+      <div class="btn-row">
+        <button type="submit" class="btn btn--primary btn--block">Salvar cliente</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- DETALHE DO CLIENTE -->
+  <section id="screen-client" class="screen">
+    <div class="tabs" id="client-tabs">
+      <button class="tab-btn" data-tab="medicao">Nova medição</button>
+      <button class="tab-btn" data-tab="historico">Histórico</button>
+      <button class="tab-btn" data-tab="graficos">Gráficos</button>
+      <button class="tab-btn" data-tab="dados">Dados</button>
+    </div>
+
+    <!-- Aba: nova medição -->
+    <div class="tab-panel" data-panel="medicao">
+      <form id="form-visit" class="card">
+        <input type="hidden" id="visit-id" />
+        <label>Data da visita
+          <input type="date" id="visit-date" required />
+        </label>
+
+        <div id="visit-chakras" class="chakra-grid"></div>
+
+        <label>Notas da sessão
+          <textarea id="visit-notes" rows="3"></textarea>
+        </label>
+
+        <div id="visit-summary" class="summary-box"></div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn--primary btn--block">Salvar medição</button>
+          <button type="button" id="btn-delete-visit" class="btn btn--danger btn--block" hidden>Excluir esta medição</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Aba: histórico -->
+    <div class="tab-panel" data-panel="historico">
+      <div class="btn-row">
+        <button id="btn-export-csv" class="btn btn--secondary">Exportar CSV</button>
+        <button id="btn-export-json" class="btn btn--secondary">Exportar JSON</button>
+      </div>
+      <div id="history-list" class="list"></div>
+      <p id="history-empty" class="muted centered" hidden>Nenhuma medição registrada ainda.</p>
+    </div>
+
+    <!-- Aba: gráficos -->
+    <div class="tab-panel" data-panel="graficos">
+      <p id="charts-empty" class="muted centered" hidden>Registre ao menos 2 medições para ver a evolução.</p>
+      <div id="charts-content" hidden>
+        <div class="chart-card">
+          <h3>Totais por domínio</h3>
+          <div class="chart-wrap"><canvas id="chart-domain"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>NEI (Net Energy Intake)</h3>
+          <div class="chart-wrap"><canvas id="chart-nei"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>TNDC (chakras distorcidos)</h3>
+          <div class="chart-wrap"><canvas id="chart-tndc"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Evolução por chakra</h3>
+          <div id="chakra-toggles" class="chakra-toggles"></div>
+          <div class="chart-wrap"><canvas id="chart-chakra"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: dados do cliente -->
+    <div class="tab-panel" data-panel="dados">
+      <div id="client-data-view" class="card"></div>
+      <div class="btn-row">
+        <button id="btn-edit-client" class="btn btn--secondary btn--block">Editar cliente</button>
+        <button id="btn-delete-client" class="btn btn--danger btn--block">Excluir cliente</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script type="module" src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
