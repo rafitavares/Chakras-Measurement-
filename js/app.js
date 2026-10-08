@@ -1,6 +1,7 @@
-import { watchAuth, login, logout } from './auth.js';
 import * as ClientsAPI from './clients.js';
 import * as VisitsAPI from './visits.js';
+import { store } from './store.js';
+import { exportAllBackup, importAllBackup } from './backup.js';
 import {
   CHAKRA_ORDER,
   CHAKRA_LABELS,
@@ -24,7 +25,6 @@ const SPIN_GROUPS = [
 ];
 
 const state = {
-  uid: null,
   clients: [],
   currentClientId: null,
   currentClient: null,
@@ -41,12 +41,12 @@ function showScreen(id) {
   document.getElementById(id).classList.add('screen--active');
 }
 
-function setHeader(title, { showBack = false, showLogout = false, onBack = null } = {}) {
+function setHeader(title, { showBack = false, showBackupMenu = false, onBack = null } = {}) {
   document.getElementById('header-title').textContent = title;
   const backBtn = document.getElementById('btn-back');
-  const logoutBtn = document.getElementById('btn-logout');
+  const backupBtn = document.getElementById('btn-backup-menu');
   backBtn.hidden = !showBack;
-  logoutBtn.hidden = !showLogout;
+  backupBtn.hidden = !showBackupMenu;
   backBtn.onclick = onBack;
 }
 
@@ -56,49 +56,26 @@ function todayISO() {
   return new Date(d.getTime() - offsetMs).toISOString().slice(0, 10);
 }
 
-// ---------- Autenticação ----------
+// ---------- Início ----------
 
-async function initAuth() {
-  watchAuth(async (user) => {
-    if (user) {
-      state.uid = user.uid;
-      await goToClientsList();
-    } else {
-      state.uid = null;
-      setHeader('Medição de Chakras');
-      showScreen('screen-login');
-    }
-  });
-}
-
-document.getElementById('form-login').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const errorEl = document.getElementById('login-error');
-  errorEl.hidden = true;
-  try {
-    await login(email, password);
-  } catch (err) {
-    errorEl.textContent = 'Não foi possível entrar. Confira o e-mail e a senha.';
-    errorEl.hidden = false;
+function initApp() {
+  if (!store.isAvailable()) {
+    showToast('O navegador bloqueou o armazenamento local (modo privado?). Os dados não serão salvos.', 'error');
   }
-});
-
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await logout();
-});
+  goToClientsList();
+}
 
 // ---------- Lista de clientes ----------
 
-async function goToClientsList() {
-  setHeader('Meus Clientes', { showLogout: true });
+function goToClientsList() {
+  setHeader('Meus Clientes', { showBackupMenu: true });
   showScreen('screen-clients');
-  await loadAndRenderClients();
+  document.getElementById('backup-panel').hidden = true;
+  loadAndRenderClients();
 }
 
-async function loadAndRenderClients() {
-  state.clients = await ClientsAPI.listClients(state.uid);
+function loadAndRenderClients() {
+  state.clients = ClientsAPI.listClients();
   const list = document.getElementById('clients-list');
   const empty = document.getElementById('clients-empty');
   list.innerHTML = '';
@@ -120,6 +97,40 @@ document.getElementById('btn-new-client').addEventListener('click', () => {
   openClientForm(null, 'list');
 });
 
+// ---------- Backup ----------
+
+document.getElementById('btn-backup-menu').addEventListener('click', () => {
+  const panel = document.getElementById('backup-panel');
+  panel.hidden = !panel.hidden;
+});
+
+document.getElementById('btn-export-backup').addEventListener('click', () => {
+  if (!state.clients.length) {
+    showToast('Nenhum cliente para exportar ainda.', 'error');
+    return;
+  }
+  exportAllBackup();
+  showToast('Backup exportado.', 'success');
+});
+
+document.getElementById('btn-import-backup').addEventListener('click', () => {
+  document.getElementById('input-import-backup').click();
+});
+
+document.getElementById('input-import-backup').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!confirmAction('Importar vai SUBSTITUIR todos os dados salvos neste aparelho pelos do arquivo escolhido. Continuar?')) return;
+  try {
+    const count = await importAllBackup(file);
+    showToast(`Backup importado: ${count} cliente(s).`, 'success');
+    goToClientsList();
+  } catch (err) {
+    showToast(err.message || 'Erro ao importar backup.', 'error');
+  }
+});
+
 // ---------- Formulário de cliente ----------
 
 function openClientForm(client, origin) {
@@ -137,7 +148,7 @@ function openClientForm(client, origin) {
   showScreen('screen-client-form');
 }
 
-document.getElementById('form-client').addEventListener('submit', async (e) => {
+document.getElementById('form-client').addEventListener('submit', (e) => {
   e.preventDefault();
   const data = {
     name: document.getElementById('client-name').value,
@@ -151,13 +162,13 @@ document.getElementById('form-client').addEventListener('submit', async (e) => {
   }
   try {
     if (state.editingClientId) {
-      await ClientsAPI.updateClient(state.uid, state.editingClientId, data);
+      ClientsAPI.updateClient(state.editingClientId, data);
       showToast('Cliente atualizado.', 'success');
-      await openClient(state.editingClientId, 'dados');
+      openClient(state.editingClientId, 'dados');
     } else {
-      const newId = await ClientsAPI.createClient(state.uid, data);
+      const newId = ClientsAPI.createClient(data);
       showToast('Cliente criado.', 'success');
-      await openClient(newId, 'medicao');
+      openClient(newId, 'medicao');
     }
   } catch (err) {
     showToast('Erro ao salvar cliente.', 'error');
@@ -166,10 +177,10 @@ document.getElementById('form-client').addEventListener('submit', async (e) => {
 
 // ---------- Detalhe do cliente ----------
 
-async function openClient(clientId, initialTab = 'historico') {
+function openClient(clientId, initialTab = 'historico') {
   state.currentClientId = clientId;
-  state.currentClient = await ClientsAPI.getClient(state.uid, clientId);
-  state.visits = await VisitsAPI.listVisits(state.uid, clientId);
+  state.currentClient = ClientsAPI.getClient(clientId);
+  state.visits = VisitsAPI.listVisits(clientId);
   state.selectedChakras = new Set();
 
   setHeader(state.currentClient.name, { showBack: true, onBack: goToClientsList });
@@ -220,11 +231,11 @@ document.getElementById('btn-edit-client').addEventListener('click', () => {
   openClientForm(state.currentClient, 'dados');
 });
 
-document.getElementById('btn-delete-client').addEventListener('click', async () => {
+document.getElementById('btn-delete-client').addEventListener('click', () => {
   if (!confirmAction(`Excluir "${state.currentClient.name}" e todo o histórico dele? Esta ação não pode ser desfeita.`)) return;
-  await ClientsAPI.deleteClient(state.uid, state.currentClientId);
+  ClientsAPI.deleteClient(state.currentClientId);
   showToast('Cliente excluído.', 'success');
-  await goToClientsList();
+  goToClientsList();
 });
 
 // ---------- Aba: Nova medição / edição ----------
@@ -333,7 +344,7 @@ function openVisitForEdit(visit) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-document.getElementById('form-visit').addEventListener('submit', async (e) => {
+document.getElementById('form-visit').addEventListener('submit', (e) => {
   e.preventDefault();
   const spins = readSpinsFromForm();
   const totals = computeVisitTotals(spins);
@@ -350,13 +361,13 @@ document.getElementById('form-visit').addEventListener('submit', async (e) => {
   const visitId = document.getElementById('visit-id').value;
   try {
     if (visitId) {
-      await VisitsAPI.updateVisit(state.uid, state.currentClientId, visitId, data);
+      VisitsAPI.updateVisit(state.currentClientId, visitId, data);
     } else {
-      await VisitsAPI.createVisit(state.uid, state.currentClientId, data);
+      VisitsAPI.createVisit(state.currentClientId, data);
     }
     showToast('Medição salva.', 'success');
-    state.visits = await VisitsAPI.listVisits(state.uid, state.currentClientId);
-    await syncClientStats();
+    state.visits = VisitsAPI.listVisits(state.currentClientId);
+    syncClientStats();
     resetVisitForm();
     renderHistoryTab();
     switchClientTab('historico');
@@ -365,22 +376,22 @@ document.getElementById('form-visit').addEventListener('submit', async (e) => {
   }
 });
 
-document.getElementById('btn-delete-visit').addEventListener('click', async () => {
+document.getElementById('btn-delete-visit').addEventListener('click', () => {
   const visitId = document.getElementById('visit-id').value;
   if (!visitId) return;
   if (!confirmAction('Excluir esta medição?')) return;
-  await VisitsAPI.deleteVisit(state.uid, state.currentClientId, visitId);
+  VisitsAPI.deleteVisit(state.currentClientId, visitId);
   showToast('Medição excluída.', 'success');
-  state.visits = await VisitsAPI.listVisits(state.uid, state.currentClientId);
-  await syncClientStats();
+  state.visits = VisitsAPI.listVisits(state.currentClientId);
+  syncClientStats();
   resetVisitForm();
   renderHistoryTab();
   switchClientTab('historico');
 });
 
-async function syncClientStats() {
+function syncClientStats() {
   const last = state.visits[state.visits.length - 1];
-  await ClientsAPI.updateClientStats(state.uid, state.currentClientId, {
+  ClientsAPI.updateClientStats(state.currentClientId, {
     lastVisitDate: last ? last.date : null,
     visitCount: state.visits.length,
   });
@@ -474,7 +485,4 @@ function renderChakraToggles() {
   }
 }
 
-// ---------- Botão voltar global ----------
-// (o onclick é definido dinamicamente por setHeader)
-
-initAuth();
+initApp();

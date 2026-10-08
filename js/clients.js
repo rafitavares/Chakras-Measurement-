@@ -1,83 +1,66 @@
-// CRUD de clientes: users/{uid}/clients/{clientId}
-import { db } from './firebase.js';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  getDocs,
-  getDoc,
-  query,
-  orderBy,
-  serverTimestamp,
-  writeBatch,
-} from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+// CRUD de clientes, guardado localmente via js/store.js.
+import { store } from './store.js';
 
-function clientsCol(uid) {
-  return collection(db, 'users', uid, 'clients');
+export function listClients() {
+  const db = store.loadDB();
+  return [...db.clients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 }
 
-function clientDoc(uid, clientId) {
-  return doc(db, 'users', uid, 'clients', clientId);
-}
-
-function visitsCol(uid, clientId) {
-  return collection(db, 'users', uid, 'clients', clientId, 'visits');
-}
-
-/** Lista todos os clientes do usuário, ordenados por nome. */
-export async function listClients(uid) {
-  const q = query(clientsCol(uid), orderBy('name'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-export async function getClient(uid, clientId) {
-  const snap = await getDoc(clientDoc(uid, clientId));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
+export function getClient(clientId) {
+  const db = store.loadDB();
+  return db.clients.find((c) => c.id === clientId) || null;
 }
 
 /**
  * Cria um cliente.
- * @param {string} uid
  * @param {{name:string, birthdate?:string, complaint?:string, contact?:string}} data
+ * @returns {string} id do novo cliente
  */
-export async function createClient(uid, data) {
-  const payload = {
+export function createClient(data) {
+  const db = store.loadDB();
+  const now = new Date().toISOString();
+  const client = {
+    id: store.newId(),
     name: data.name.trim(),
     birthdate: data.birthdate || null,
     complaint: data.complaint || null,
     contact: data.contact || null,
     lastVisitDate: null,
     visitCount: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
+    visits: [],
   };
-  const ref = await addDoc(clientsCol(uid), payload);
-  return ref.id;
+  db.clients.push(client);
+  store.saveDB(db);
+  return client.id;
 }
 
-/** Atualiza os campos denormalizados usados na lista de clientes (evita reler as visitas toda vez). */
-export async function updateClientStats(uid, clientId, { lastVisitDate, visitCount }) {
-  await updateDoc(clientDoc(uid, clientId), { lastVisitDate: lastVisitDate || null, visitCount: visitCount || 0 });
+export function updateClient(clientId, data) {
+  const db = store.loadDB();
+  const client = db.clients.find((c) => c.id === clientId);
+  if (!client) return;
+  client.name = data.name.trim();
+  client.birthdate = data.birthdate || null;
+  client.complaint = data.complaint || null;
+  client.contact = data.contact || null;
+  client.updatedAt = new Date().toISOString();
+  store.saveDB(db);
 }
 
-export async function updateClient(uid, clientId, data) {
-  await updateDoc(clientDoc(uid, clientId), {
-    name: data.name.trim(),
-    birthdate: data.birthdate || null,
-    complaint: data.complaint || null,
-    contact: data.contact || null,
-    updatedAt: serverTimestamp(),
-  });
+/** Exclui o cliente e todas as visitas dele (que ficam aninhadas no mesmo registro). */
+export function deleteClient(clientId) {
+  const db = store.loadDB();
+  db.clients = db.clients.filter((c) => c.id !== clientId);
+  store.saveDB(db);
 }
 
-/** Exclui o cliente e todas as visitas dele (subcoleção não é apagada automaticamente). */
-export async function deleteClient(uid, clientId) {
-  const visitsSnap = await getDocs(visitsCol(uid, clientId));
-  const batch = writeBatch(db);
-  visitsSnap.docs.forEach((d) => batch.delete(d.ref));
-  batch.delete(clientDoc(uid, clientId));
-  await batch.commit();
+/** Atualiza os campos denormalizados usados na lista de clientes. */
+export function updateClientStats(clientId, { lastVisitDate, visitCount }) {
+  const db = store.loadDB();
+  const client = db.clients.find((c) => c.id === clientId);
+  if (!client) return;
+  client.lastVisitDate = lastVisitDate || null;
+  client.visitCount = visitCount || 0;
+  store.saveDB(db);
 }

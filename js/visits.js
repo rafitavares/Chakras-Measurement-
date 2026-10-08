@@ -1,58 +1,59 @@
-// CRUD de visitas: users/{uid}/clients/{clientId}/visits/{visitId}
-import { db } from './firebase.js';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  getDoc,
-  query,
-  orderBy,
-  serverTimestamp,
-} from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+// CRUD de visitas, guardado localmente via js/store.js (aninhadas dentro do cliente).
+import { store } from './store.js';
 import { CHAKRA_ORDER } from './calculations.js';
 
-function visitsCol(uid, clientId) {
-  return collection(db, 'users', uid, 'clients', clientId, 'visits');
-}
-
-function visitDoc(uid, clientId, visitId) {
-  return doc(db, 'users', uid, 'clients', clientId, 'visits', visitId);
+function findClient(db, clientId) {
+  return db.clients.find((c) => c.id === clientId);
 }
 
 /** Lista as visitas do cliente, da mais antiga para a mais recente. */
-export async function listVisits(uid, clientId) {
-  const q = query(visitsCol(uid, clientId), orderBy('date'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+export function listVisits(clientId) {
+  const db = store.loadDB();
+  const client = findClient(db, clientId);
+  if (!client) return [];
+  return [...client.visits].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
-export async function getVisit(uid, clientId, visitId) {
-  const snap = await getDoc(visitDoc(uid, clientId, visitId));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
+export function getVisit(clientId, visitId) {
+  const db = store.loadDB();
+  const client = findClient(db, clientId);
+  return client?.visits.find((v) => v.id === visitId) || null;
 }
 
 /**
  * Cria uma visita.
  * @param {{date:string, spins:Object<string,string>, diameters?:Object<string,number>, notes?:string}} data
+ * @returns {string|null} id da nova visita, ou null se o cliente não existir
  */
-export async function createVisit(uid, clientId, data) {
-  const payload = sanitizeVisitPayload(data);
-  payload.createdAt = serverTimestamp();
-  const ref = await addDoc(visitsCol(uid, clientId), payload);
-  return ref.id;
+export function createVisit(clientId, data) {
+  const db = store.loadDB();
+  const client = findClient(db, clientId);
+  if (!client) return null;
+  const visit = {
+    id: store.newId(),
+    ...sanitizeVisitPayload(data),
+    createdAt: new Date().toISOString(),
+  };
+  client.visits.push(visit);
+  store.saveDB(db);
+  return visit.id;
 }
 
-export async function updateVisit(uid, clientId, visitId, data) {
-  const payload = sanitizeVisitPayload(data);
-  await updateDoc(visitDoc(uid, clientId, visitId), payload);
+export function updateVisit(clientId, visitId, data) {
+  const db = store.loadDB();
+  const client = findClient(db, clientId);
+  const visit = client?.visits.find((v) => v.id === visitId);
+  if (!visit) return;
+  Object.assign(visit, sanitizeVisitPayload(data));
+  store.saveDB(db);
 }
 
-export async function deleteVisit(uid, clientId, visitId) {
-  await deleteDoc(visitDoc(uid, clientId, visitId));
+export function deleteVisit(clientId, visitId) {
+  const db = store.loadDB();
+  const client = findClient(db, clientId);
+  if (!client) return;
+  client.visits = client.visits.filter((v) => v.id !== visitId);
+  store.saveDB(db);
 }
 
 function sanitizeVisitPayload(data) {

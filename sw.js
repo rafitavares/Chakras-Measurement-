@@ -2,20 +2,19 @@
 // instalação como PWA e para abrir mais rápido / offline. Estratégia
 // network-first com fallback em cache, para nunca travar numa versão antiga
 // enquanto houver internet.
-const CACHE_NAME = 'chakras-shell-v1';
+const CACHE_NAME = 'chakras-shell-v2';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './css/styles.css',
   './js/app.js',
-  './js/auth.js',
+  './js/backup.js',
   './js/calculations.js',
   './js/charts.js',
   './js/clients.js',
   './js/export.js',
-  './js/firebase.js',
-  './js/firebase-config.js',
+  './js/store.js',
   './js/ui.js',
   './js/visits.js',
   './icons/icon-192.png',
@@ -41,7 +40,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) {
-    return; // deixa passar direto: Firebase, Chart.js CDN, etc.
+    return; // deixa passar direto: Chart.js CDN, etc.
   }
   event.respondWith(
     fetch(req)
