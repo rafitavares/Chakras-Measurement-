@@ -36,11 +36,15 @@ exporte um arquivo. Isso é mais simples, mas tem uma troca importante:
 
 ## Passo 1 — Publicar no GitHub Pages
 
-1. Garanta que todos os arquivos deste repositório estejam no branch `main`,
-   na raiz do repositório (não dentro de nenhuma subpasta).
+1. Garanta que todos os arquivos deste repositório estejam no branch padrão
+   do repositório, na raiz (não dentro de nenhuma subpasta). Este repositório
+   ainda não tem um branch `main` — o branch padrão atual é
+   `claude/focused-babbage-p7lmxa`, e é esse que vai aparecer na lista do
+   passo 4.
 2. No GitHub, vá em **Settings > Pages** do repositório.
 3. Em **"Build and deployment"**, escolha a fonte **"Deploy from a branch"**.
-4. Em **Branch**, selecione `main` e a pasta `/ (root)`. Clique em **Save**.
+4. Em **Branch**, selecione o branch que tem o código (veja o item 1) e a
+   pasta `/ (root)`. Clique em **Save**.
 5. Aguarde 1-2 minutos. A URL do site vai aparecer no topo dessa mesma
    página, algo como:
 
