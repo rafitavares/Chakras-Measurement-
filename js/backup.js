@@ -1,5 +1,5 @@
-// Backup completo (todos os clientes + visitas) para levar os dados deste
-// navegador para outro aparelho, já que tudo fica salvo só localmente.
+// Full backup (all clients + visits) to move this browser's data to another
+// device, since everything is saved only locally.
 import { store } from './store.js';
 
 function todayISO() {
@@ -11,9 +11,9 @@ function todayISO() {
 export function exportAllBackup() {
   const db = store.loadDB();
   const payload = {
-    tipo: 'backup-medicao-chakras',
-    versao: 1,
-    exportadoEm: new Date().toISOString(),
+    type: 'chakra-measurement-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
     clients: db.clients,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -28,23 +28,23 @@ export function exportAllBackup() {
 }
 
 /**
- * Lê um arquivo de backup e SUBSTITUI todos os dados salvos neste navegador.
+ * Reads a backup file and REPLACES all data saved in this browser.
  * @param {File} file
  */
 export function importAllBackup(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    reader.onerror = () => reject(new Error('Could not read the file.'));
     reader.onload = () => {
       let parsed;
       try {
         parsed = JSON.parse(String(reader.result));
       } catch {
-        reject(new Error('Arquivo inválido: não é um JSON de backup válido.'));
+        reject(new Error('Invalid file: not a valid backup JSON.'));
         return;
       }
       if (!parsed || !Array.isArray(parsed.clients)) {
-        reject(new Error('Arquivo inválido: formato de backup não reconhecido.'));
+        reject(new Error('Invalid file: unrecognized backup format.'));
         return;
       }
       try {

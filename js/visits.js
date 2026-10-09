@@ -1,4 +1,4 @@
-// CRUD de visitas, guardado localmente via js/store.js (aninhadas dentro do cliente).
+// Visit CRUD, stored locally via js/store.js (nested inside the client).
 import { store } from './store.js';
 import { CHAKRA_ORDER } from './calculations.js';
 
@@ -6,7 +6,7 @@ function findClient(db, clientId) {
   return db.clients.find((c) => c.id === clientId);
 }
 
-/** Lista as visitas do cliente, da mais antiga para a mais recente. */
+/** Lists the client's visits, oldest to newest. */
 export function listVisits(clientId) {
   const db = store.loadDB();
   const client = findClient(db, clientId);
@@ -21,9 +21,9 @@ export function getVisit(clientId, visitId) {
 }
 
 /**
- * Cria uma visita.
+ * Creates a visit.
  * @param {{date:string, spins:Object<string,string>, diameters?:Object<string,number>, notes?:string}} data
- * @returns {string|null} id da nova visita, ou null se o cliente não existir
+ * @returns {string|null} id of the new visit, or null if the client doesn't exist
  */
 export function createVisit(clientId, data) {
   const db = store.loadDB();

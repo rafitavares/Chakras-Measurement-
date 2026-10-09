@@ -1,8 +1,8 @@
-// Núcleo do método de leitura de chakras (Barbara Brennan).
-// Único ponto de verdade para a tabela de notações de spin e para os cálculos
-// de cada visita. Não duplique estes valores em nenhum outro arquivo.
+// Core of the chakra pendulum reading method (Barbara Brennan).
+// Single source of truth for the spin notation table and for the
+// per-visit calculations. Do not duplicate these values anywhere else.
 
-// notação de spin -> valor numérico atribuído
+// spin notation -> assigned numeric value
 export const SPIN_VALUES = Object.freeze({
   C: 1.0,
   CER: 0.5,
@@ -23,58 +23,58 @@ export const SPIN_VALUES = Object.freeze({
   S: -2.0,
 });
 
-// Rótulos amigáveis para o seletor de notação (mesma ordem da planilha original)
+// Friendly labels for the notation picker (same order as the original spreadsheet)
 export const SPIN_OPTIONS = [
-  { code: 'C', label: 'C — Horário circular' },
-  { code: 'CER', label: 'CER — Horário elíptico (direita)' },
-  { code: 'CEL', label: 'CEL — Horário elíptico (esquerda)' },
-  { code: 'CEV', label: 'CEV — Horário elíptico (vertical)' },
-  { code: 'CEH', label: 'CEH — Horário elíptico (horizontal)' },
-  { code: 'CEAS', label: 'CEAS — Horário elíptico (anti-sentido)' },
-  { code: 'V', label: 'V — Linha reta (vertical)' },
-  { code: 'H', label: 'H — Linha reta (horizontal)' },
-  { code: 'R', label: 'R — Linha reta (direita)' },
-  { code: 'L', label: 'L — Linha reta (esquerda)' },
-  { code: 'CCER', label: 'CCER — Anti-horário elíptico (direita)' },
-  { code: 'CCEL', label: 'CCEL — Anti-horário elíptico (esquerda)' },
-  { code: 'CCEV', label: 'CCEV — Anti-horário elíptico (vertical)' },
-  { code: 'CCEH', label: 'CCEH — Anti-horário elíptico (horizontal)' },
-  { code: 'CCEAS', label: 'CCEAS — Anti-horário elíptico (anti-sentido)' },
-  { code: 'CC', label: 'CC — Anti-horário circular' },
-  { code: 'S', label: 'S — Parado (still)' },
+  { code: 'C', label: 'C — Clockwise Round' },
+  { code: 'CER', label: 'CER — Clockwise Elliptical (right)' },
+  { code: 'CEL', label: 'CEL — Clockwise Elliptical (left)' },
+  { code: 'CEV', label: 'CEV — Clockwise Elliptical (vertical)' },
+  { code: 'CEH', label: 'CEH — Clockwise Elliptical (horizontal)' },
+  { code: 'CEAS', label: 'CEAS — Clockwise Elliptical (askew)' },
+  { code: 'V', label: 'V — Straight Line (vertical)' },
+  { code: 'H', label: 'H — Straight Line (horizontal)' },
+  { code: 'R', label: 'R — Straight Line (right)' },
+  { code: 'L', label: 'L — Straight Line (left)' },
+  { code: 'CCER', label: 'CCER — Counterclockwise Elliptical (right)' },
+  { code: 'CCEL', label: 'CCEL — Counterclockwise Elliptical (left)' },
+  { code: 'CCEV', label: 'CCEV — Counterclockwise Elliptical (vertical)' },
+  { code: 'CCEH', label: 'CCEH — Counterclockwise Elliptical (horizontal)' },
+  { code: 'CCEAS', label: 'CCEAS — Counterclockwise Elliptical (askew)' },
+  { code: 'CC', label: 'CC — Counterclockwise Round' },
+  { code: 'S', label: 'S — Still' },
 ];
 
-// Ordem de exibição em tela, de cima para baixo, igual à planilha original
+// Display order, top to bottom, same as the original spreadsheet column
 export const CHAKRA_ORDER = Object.freeze([
   '7', '6A', '6B', '5A', '4A', '3A', '2A', '5B', '4B', '3B', '2B', '1',
 ]);
 
 export const CHAKRA_LABELS = Object.freeze({
-  '7': '7 · Coroa',
-  '6A': '6A · Terceiro olho (frente)',
-  '6B': '6B · Terceiro olho (costas)',
-  '5A': '5A · Garganta (frente)',
-  '4A': '4A · Coração (frente)',
-  '3A': '3A · Plexo solar (frente)',
-  '2A': '2A · Sacral (frente)',
-  '5B': '5B · Garganta (costas)',
-  '4B': '4B · Coração (costas)',
-  '3B': '3B · Plexo solar (costas)',
-  '2B': '2B · Sacral (costas)',
-  '1': '1 · Base/raiz',
+  '7': '7 · Crown',
+  '6A': '6A · Third Eye (front)',
+  '6B': '6B · Third Eye (back)',
+  '5A': '5A · Throat (front)',
+  '4A': '4A · Heart (front)',
+  '3A': '3A · Solar Plexus (front)',
+  '2A': '2A · Sacral (front)',
+  '5B': '5B · Throat (back)',
+  '4B': '4B · Heart (back)',
+  '3B': '3B · Solar Plexus (back)',
+  '2B': '2B · Sacral (back)',
+  '1': '1 · Base/Root',
 });
 
-// Os 3 domínios e quais chakras cada um agrupa
+// The 3 domains and which chakras each one groups
 export const DOMAIN_GROUPS = Object.freeze({
   REASON: ['7', '6A', '6B'],
   EMOTION: ['5A', '4A', '3A', '2A'],
   WILL: ['5B', '4B', '3B', '2B', '1'],
 });
 
-export const DOMAIN_LABELS_PT = Object.freeze({
-  REASON: 'Razão',
-  EMOTION: 'Emoção',
-  WILL: 'Vontade',
+export const DOMAIN_LABELS = Object.freeze({
+  REASON: 'Reason',
+  EMOTION: 'Emotion',
+  WILL: 'Will',
 });
 
 export function spinValue(notation) {
@@ -84,8 +84,8 @@ export function spinValue(notation) {
 }
 
 /**
- * Calcula os totais de uma visita a partir do objeto de notações escolhidas.
- * @param {Object<string,string>} spins - mapa chakra -> notação (ex: {"7":"C", "6A":"CCEL", ...})
+ * Computes the totals for a visit from the chosen notations.
+ * @param {Object<string,string>} spins - map chakra -> notation (e.g. {"7":"C", "6A":"CCEL", ...})
  * @returns {{
  *   values: Object<string,number|null>,
  *   totals: {REASON:number, EMOTION:number, WILL:number},
@@ -123,17 +123,17 @@ export function computeVisitTotals(spins = {}) {
 
   const tndc = CHAKRA_ORDER.reduce((acc, ch) => {
     const notation = spins[ch];
-    if (!notation) return acc; // não preenchido ainda: não conta
+    if (!notation) return acc; // not filled in yet: doesn't count
     return acc + (notation !== 'C' ? 1 : 0);
   }, 0);
 
   return { values, totals, dominant, secondary, nei, tndc, complete };
 }
 
-// Faixa de referência usada nos gráficos de NEI
+// Reference range used in the NEI charts
 export const NEI_RANGE = Object.freeze({ min: -12, max: 12 });
 
-/** Diferença em semanas (arredondada) entre duas datas ISO "YYYY-MM-DD" */
+/** Difference in weeks (rounded) between two ISO "YYYY-MM-DD" dates */
 export function weeksBetween(isoDateEarlier, isoDateLater) {
   const a = new Date(isoDateEarlier + 'T00:00:00');
   const b = new Date(isoDateLater + 'T00:00:00');

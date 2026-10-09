@@ -1,9 +1,8 @@
-// Armazenamento local no navegador (localStorage). Tudo fica só neste
-// aparelho/navegador — não sincroniza sozinho entre dispositivos. Use
-// Exportar/Importar backup (js/backup.js) para levar os dados para outro
-// aparelho.
+// Local storage in the browser (localStorage). Everything stays only on
+// this device/browser — it does not sync between devices by itself. Use
+// Export/Import backup (js/backup.js) to move data to another device.
 //
-// Formato salvo sob a chave STORAGE_KEY:
+// Format saved under STORAGE_KEY:
 // { clients: [ { id, name, ..., visits: [ { id, date, spins, diameters, notes, createdAt } ] } ] }
 
 const STORAGE_KEY = 'chakras_db_v1';
@@ -26,7 +25,7 @@ function saveDB(db) {
 
 function replaceDB(db) {
   if (!db || !Array.isArray(db.clients)) {
-    throw new Error('Formato de backup inválido: esperado um objeto com a lista "clients".');
+    throw new Error('Invalid backup format: expected an object with a "clients" list.');
   }
   saveDB(db);
 }
@@ -36,7 +35,7 @@ function newId() {
   return `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-/** true se o navegador conseguiu de fato gravar (modo privado/quota cheia podem falhar silenciosamente). */
+/** true if the browser actually managed to write (private mode/full quota can fail silently). */
 function isAvailable() {
   try {
     const testKey = '__chakras_storage_test__';

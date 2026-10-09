@@ -1,9 +1,20 @@
-# Medição de Chakras
+# Medição de Chakras (Chakra Measurement)
 
 App web para registrar medições de chakras de clientes pelo método de leitura
-com pêndulo (Barbara Brennan) e acompanhar a evolução de cada cliente em
-gráficos. Feito para uso no celular. Publicado como site estático no
-**GitHub Pages**; os dados ficam salvos **localmente, só neste aparelho**.
+com pêndulo (Barbara Brennan School of Healing) e acompanhar a evolução de
+cada cliente em gráficos e num diagrama corporal colorido. Feito para uso no
+celular. Publicado como site estático no **GitHub Pages**; os dados ficam
+salvos **localmente, só neste aparelho**.
+
+> O app em si (telas, botões, textos) está **em inglês**. Este guia de
+> instalação continua em português, para você.
+
+> A logo usada no cabeçalho e nos ícones (`assets/logo.png`,
+> `icons/icon-*.png`) é da **Barbara Brennan School of Healing (BBSH)**, uma
+> marca registrada da escola — não é sua. Está sendo usada aqui como
+> referência ao método, para uma ferramenta de uso pessoal/privado da sua
+> prática. Se em algum momento este app for distribuído publicamente ou
+> comercializado, troque essa logo por uma própria.
 
 Este guia foi escrito para quem **não é programador**.
 
@@ -18,8 +29,8 @@ Este guia foi escrito para quem **não é programador**.
   seu navegador** (`localStorage`), no aparelho em que você está usando.
   Eles **não** sincronizam sozinhos entre celular, tablet e computador.
 - Para levar os dados de um aparelho para outro (ou fazer backup), use os
-  botões **Exportar backup** / **Importar backup** na tela de clientes — eles
-  geram/leem um arquivo `.json` com tudo.
+  botões **Export backup** / **Import backup** (menu ⋮ na tela de clientes) —
+  eles geram/leem um arquivo `.json` com tudo.
 
 ### Por que não tem login?
 
@@ -95,16 +106,25 @@ Depois disso, o app abre como um aplicativo normal, com ícone próprio.
 
 ## Usando o app
 
-1. **Clientes** — toque no botão **+** para criar um cliente novo (só o nome
-   é obrigatório).
-2. **Nova medição** — dentro do cliente, escolha a data e a notação de spin
-   de cada um dos 12 chakras (o diâmetro é opcional). O resumo (Razão /
-   Emoção / Vontade, domínio dominante, NEI, TNDC) é calculado na hora.
-3. **Histórico** — lista todas as medições; toque em uma para editar ou
-   excluir.
-4. **Gráficos** — evolução por domínio, NEI, TNDC e por chakra individual
-   (a partir de 2 medições registradas).
-5. **Exportar (por cliente)** — na aba Histórico de cada cliente, exporte o
+1. **Clientes** — toque no botão **+** para criar um cliente novo. Só o nome
+   é obrigatório; os demais campos (data de nascimento, sexo, e-mail,
+   telefone) são opcionais. No campo de queixa/observações, **cada linha que
+   você digitar vira um item com marcador** (bullet point) na tela de dados
+   do cliente — útil para listar vários sintomas separadamente.
+2. **New Reading** (Nova medição) — dentro do cliente, escolha a data e a
+   notação de spin de cada um dos 12 chakras (o diâmetro é opcional). Dois
+   painéis são atualizados em tempo real enquanto você preenche:
+   - O **resumo** (Reason/Emotion/Will, domínio dominante, NEI, TNDC);
+   - O **diagrama corporal**, com um boneco mostrando os 12 pontos de chakra
+     na posição anatômica certa, coloridos pelo status de cada um (veja a
+     legenda abaixo do diagrama no próprio app: verde = aberto e alinhado,
+     tons de verde = aberto mas não alinhado, tons de vermelho = fechando,
+     vermelho = fechado, cinza = linha reta, preto = parado).
+3. **History** (Histórico) — lista todas as medições; toque em uma para
+   editar ou excluir.
+4. **Charts** (Gráficos) — evolução por domínio, NEI, TNDC e por chakra
+   individual (a partir de 2 medições registradas).
+5. **Exportar (por cliente)** — na aba History de cada cliente, exporte o
    histórico dele em CSV ou JSON (para analisar numa planilha, por exemplo).
 6. **Backup (todos os clientes)** — no menu ⋮ da tela de clientes, exporte
    ou importe um backup completo, para levar os dados para outro aparelho.
@@ -138,6 +158,8 @@ das notações escolhidas (`spins`), garantindo consistência.
 ```
 index.html              tela única do app
 css/styles.css          estilo mobile-first
+assets/logo.png          logo BBSH usada no cabeçalho
+icons/icon-*.png        ícones do PWA (gerados a partir da logo BBSH)
 js/store.js             motor de armazenamento local (localStorage)
 js/calculations.js      tabela de notações e cálculos do método (fonte única da verdade)
 js/clients.js           CRUD de clientes (local)
@@ -145,6 +167,7 @@ js/visits.js            CRUD de medições/visitas (local)
 js/backup.js            exportar/importar backup completo (.json)
 js/export.js            exportação CSV/JSON por cliente
 js/charts.js            gráficos (Chart.js)
+js/bodymap.js           diagrama corporal com cores por status do chakra
 js/ui.js                pequenos utilitários de interface
 js/app.js               controlador principal (telas, navegação, eventos)
 manifest.json + sw.js   suporte a instalação como PWA
@@ -159,7 +182,7 @@ Tudo sob uma única chave no `localStorage` do navegador:
 localStorage["chakras_db_v1"] = {
   clients: [
     {
-      id, name, birthdate, complaint, contact,
+      id, name, birthdate, sex, email, phone, complaint,
       lastVisitDate, visitCount, createdAt, updatedAt,
       visits: [
         { id, date, spins: { "7":"C", "6A":"CCEL", ... }, diameters: { "7": 8.5, ... }, notes, createdAt }
@@ -168,6 +191,10 @@ localStorage["chakras_db_v1"] = {
   ]
 }
 ```
+
+O campo `complaint` guarda texto livre; cada linha digitada é exibida como um
+item de lista com marcador na tela de dados do cliente (não muda como é
+salvo, só como é mostrado).
 
 Os totais (Razão/Emoção/Vontade, NEI, TNDC) **não** ficam salvos — são
 sempre calculados a partir de `spins` na hora de exibir, usando

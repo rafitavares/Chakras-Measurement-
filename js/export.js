@@ -18,18 +18,18 @@ function safeFileName(name) {
 
 export function exportClientJSON(client, visits) {
   const payload = {
-    cliente: { nome: client.name, dataNascimento: client.birthdate, queixa: client.complaint, contato: client.contact },
-    visitas: visits.map((v) => {
+    client: { name: client.name, birthdate: client.birthdate, sex: client.sex, email: client.email, phone: client.phone, complaint: client.complaint },
+    visits: visits.map((v) => {
       const totals = computeVisitTotals(v.spins);
       return {
-        data: v.date,
-        notacoes: v.spins,
-        diametros: v.diameters || {},
-        notas: v.notes || '',
-        totais: totals.totals,
+        date: v.date,
+        spins: v.spins,
+        diameters: v.diameters || {},
+        notes: v.notes || '',
+        totals: totals.totals,
         nei: totals.nei,
         tndc: totals.tndc,
-        dominante: totals.dominant,
+        dominant: totals.dominant,
       };
     }),
   };
@@ -37,7 +37,7 @@ export function exportClientJSON(client, visits) {
 }
 
 export function exportClientCSV(client, visits) {
-  const header = ['data', ...CHAKRA_ORDER.map((c) => `spin_${c}`), ...CHAKRA_ORDER.map((c) => `dia_${c}`), 'REASON', 'EMOTION', 'WILL', 'NEI', 'TNDC', 'dominante', 'notas'];
+  const header = ['date', ...CHAKRA_ORDER.map((c) => `spin_${c}`), ...CHAKRA_ORDER.map((c) => `diameter_${c}`), 'REASON', 'EMOTION', 'WILL', 'NEI', 'TNDC', 'dominant', 'notes'];
   const rows = visits.map((v) => {
     const t = computeVisitTotals(v.spins);
     const cells = [

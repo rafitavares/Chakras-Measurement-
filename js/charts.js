@@ -1,9 +1,9 @@
-// Gráficos de evolução com Chart.js (carregado via CDN em index.html,
-// disponível globalmente como `Chart`).
-import { CHAKRA_ORDER, CHAKRA_LABELS, DOMAIN_LABELS_PT, NEI_RANGE, computeVisitTotals } from './calculations.js';
-import { formatDateBR } from './ui.js';
+// Evolution charts with Chart.js (loaded via CDN in index.html,
+// available globally as `Chart`).
+import { CHAKRA_ORDER, CHAKRA_LABELS, DOMAIN_LABELS, NEI_RANGE, computeVisitTotals } from './calculations.js';
+import { formatDate } from './ui.js';
 
-// Cores suaves associadas a cada chakra (do topo/coroa à base)
+// Soft colors associated with each chakra (crown down to root)
 export const CHAKRA_COLORS = {
   '7': '#8e7cc3',
   '6A': '#5b6fd6',
@@ -49,7 +49,7 @@ function baseOptions(extra = {}) {
 }
 
 function labelsFromVisits(visits) {
-  return visits.map((v) => formatDateBR(v.date));
+  return visits.map((v) => formatDate(v.date));
 }
 
 export function renderDomainChart(canvasEl, visits) {
@@ -61,7 +61,7 @@ export function renderDomainChart(canvasEl, visits) {
     data: {
       labels,
       datasets: ['REASON', 'EMOTION', 'WILL'].map((domain) => ({
-        label: DOMAIN_LABELS_PT[domain],
+        label: DOMAIN_LABELS[domain],
         data: totalsByVisit.map((t) => t[domain]),
         borderColor: DOMAIN_COLORS[domain],
         backgroundColor: DOMAIN_COLORS[domain],
@@ -116,7 +116,7 @@ export function renderTndcChart(canvasEl, visits) {
       labels,
       datasets: [
         {
-          label: 'TNDC (chakras distorcidos)',
+          label: 'TNDC (distorted chakras)',
           data: tndcValues,
           backgroundColor: '#c2a52f',
         },

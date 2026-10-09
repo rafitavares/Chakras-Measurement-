@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-<title>Medição de Chakras</title>
-<meta name="description" content="Registro e evolução de medições de chakras pelo método de leitura com pêndulo." />
-<meta name="theme-color" content="#5b6fd6" />
+<title>Chakra Measurement</title>
+<meta name="description" content="Record and track chakra pendulum readings over time." />
+<meta name="theme-color" content="#3b387b" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
 <link rel="icon" href="icons/icon-192.png" />
@@ -16,101 +16,119 @@
 <div id="toast" class="toast"></div>
 
 <header id="app-header" class="app-header">
-  <button id="btn-back" class="icon-btn" hidden aria-label="Voltar">&larr;</button>
-  <h1 id="header-title">Medição de Chakras</h1>
+  <button id="btn-back" class="icon-btn" hidden aria-label="Back">&larr;</button>
+  <img src="assets/logo.png" alt="BBSH" class="app-logo" />
+  <h1 id="header-title">Chakra Measurement</h1>
   <button id="btn-backup-menu" class="icon-btn" aria-label="Backup">⋮</button>
 </header>
 
 <main id="app-main">
 
-  <!-- LISTA DE CLIENTES -->
+  <!-- CLIENTS LIST -->
   <section id="screen-clients" class="screen screen--active">
     <div id="backup-panel" class="card" hidden>
       <h2>Backup</h2>
-      <p class="muted">Os dados ficam salvos só neste navegador/aparelho. Exporte um arquivo de backup regularmente e use-o para levar os dados para outro aparelho.</p>
+      <p class="muted">Data is saved only in this browser/device. Export a backup file regularly and use it to move your data to another device.</p>
       <div class="btn-row">
-        <button id="btn-export-backup" class="btn btn--secondary btn--block">Exportar backup (todos os clientes)</button>
+        <button id="btn-export-backup" class="btn btn--secondary btn--block">Export backup (all clients)</button>
       </div>
       <div class="btn-row">
-        <button id="btn-import-backup" class="btn btn--secondary btn--block">Importar backup</button>
+        <button id="btn-import-backup" class="btn btn--secondary btn--block">Import backup</button>
         <input type="file" id="input-import-backup" accept="application/json,.json" hidden />
       </div>
-      <p class="muted">Importar <strong>substitui</strong> todos os dados salvos neste aparelho pelos do arquivo.</p>
+      <p class="muted">Importing <strong>replaces</strong> all data currently saved on this device with the file's data.</p>
     </div>
     <div id="clients-list" class="list"></div>
-    <p id="clients-empty" class="muted centered" hidden>Nenhum cliente cadastrado ainda.</p>
-    <button id="btn-new-client" class="fab" aria-label="Novo cliente">+</button>
+    <p id="clients-empty" class="muted centered" hidden>No clients yet.</p>
+    <button id="btn-new-client" class="fab" aria-label="New client">+</button>
   </section>
 
-  <!-- FORM DE CLIENTE (novo / editar) -->
+  <!-- CLIENT FORM (new / edit) -->
   <section id="screen-client-form" class="screen">
     <form id="form-client" class="card">
-      <label>Nome *
+      <label>Name *
         <input type="text" id="client-name" required />
       </label>
-      <label>Data de nascimento
+      <label>Date of birth
         <input type="date" id="client-birthdate" />
       </label>
-      <label>Queixa / observações gerais
-        <textarea id="client-complaint" rows="3"></textarea>
+      <label>Sex
+        <select id="client-sex">
+          <option value="">Select…</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="other">Other</option>
+          <option value="prefer-not-to-say">Prefer not to say</option>
+        </select>
       </label>
-      <label>Contato
-        <input type="text" id="client-contact" placeholder="Telefone, e-mail..." />
+      <label>E-mail
+        <input type="email" id="client-email" placeholder="name@example.com" />
+      </label>
+      <label>Phone
+        <input type="tel" id="client-phone" placeholder="(555) 555-5555" />
+      </label>
+      <label>Presenting complaint / general notes <span class="muted">(one item per line — shown as bullet points)</span>
+        <textarea id="client-complaint" rows="4" placeholder="e.g.&#10;Low energy in the mornings&#10;Trouble sleeping&#10;Lower back tension"></textarea>
       </label>
       <div class="btn-row">
-        <button type="submit" class="btn btn--primary btn--block">Salvar cliente</button>
+        <button type="submit" class="btn btn--primary btn--block">Save client</button>
       </div>
     </form>
   </section>
 
-  <!-- DETALHE DO CLIENTE -->
+  <!-- CLIENT DETAIL -->
   <section id="screen-client" class="screen">
     <div class="tabs" id="client-tabs">
-      <button class="tab-btn" data-tab="medicao">Nova medição</button>
-      <button class="tab-btn" data-tab="historico">Histórico</button>
-      <button class="tab-btn" data-tab="graficos">Gráficos</button>
-      <button class="tab-btn" data-tab="dados">Dados</button>
+      <button class="tab-btn" data-tab="reading">New Reading</button>
+      <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="charts">Charts</button>
+      <button class="tab-btn" data-tab="info">Client Info</button>
     </div>
 
-    <!-- Aba: nova medição -->
-    <div class="tab-panel" data-panel="medicao">
+    <!-- Tab: new reading -->
+    <div class="tab-panel" data-panel="reading">
       <form id="form-visit" class="card">
         <input type="hidden" id="visit-id" />
-        <label>Data da visita
+        <label>Visit date
           <input type="date" id="visit-date" required />
         </label>
 
         <div id="visit-chakras" class="chakra-grid"></div>
 
-        <label>Notas da sessão
+        <div class="chart-card">
+          <h3>Body map</h3>
+          <div id="bodymap-container"></div>
+        </div>
+
+        <label>Session notes
           <textarea id="visit-notes" rows="3"></textarea>
         </label>
 
         <div id="visit-summary" class="summary-box"></div>
 
         <div class="btn-row">
-          <button type="submit" class="btn btn--primary btn--block">Salvar medição</button>
-          <button type="button" id="btn-delete-visit" class="btn btn--danger btn--block" hidden>Excluir esta medição</button>
+          <button type="submit" class="btn btn--primary btn--block">Save reading</button>
+          <button type="button" id="btn-delete-visit" class="btn btn--danger btn--block" hidden>Delete this reading</button>
         </div>
       </form>
     </div>
 
-    <!-- Aba: histórico -->
-    <div class="tab-panel" data-panel="historico">
+    <!-- Tab: history -->
+    <div class="tab-panel" data-panel="history">
       <div class="btn-row">
-        <button id="btn-export-csv" class="btn btn--secondary">Exportar CSV</button>
-        <button id="btn-export-json" class="btn btn--secondary">Exportar JSON</button>
+        <button id="btn-export-csv" class="btn btn--secondary">Export CSV</button>
+        <button id="btn-export-json" class="btn btn--secondary">Export JSON</button>
       </div>
       <div id="history-list" class="list"></div>
-      <p id="history-empty" class="muted centered" hidden>Nenhuma medição registrada ainda.</p>
+      <p id="history-empty" class="muted centered" hidden>No readings recorded yet.</p>
     </div>
 
-    <!-- Aba: gráficos -->
-    <div class="tab-panel" data-panel="graficos">
-      <p id="charts-empty" class="muted centered" hidden>Registre ao menos 2 medições para ver a evolução.</p>
+    <!-- Tab: charts -->
+    <div class="tab-panel" data-panel="charts">
+      <p id="charts-empty" class="muted centered" hidden>Record at least 2 readings to see the evolution.</p>
       <div id="charts-content" hidden>
         <div class="chart-card">
-          <h3>Totais por domínio</h3>
+          <h3>Totals by domain</h3>
           <div class="chart-wrap"><canvas id="chart-domain"></canvas></div>
         </div>
         <div class="chart-card">
@@ -118,23 +136,23 @@
           <div class="chart-wrap"><canvas id="chart-nei"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>TNDC (chakras distorcidos)</h3>
+          <h3>TNDC (distorted chakras)</h3>
           <div class="chart-wrap"><canvas id="chart-tndc"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>Evolução por chakra</h3>
+          <h3>Evolution by chakra</h3>
           <div id="chakra-toggles" class="chakra-toggles"></div>
           <div class="chart-wrap"><canvas id="chart-chakra"></canvas></div>
         </div>
       </div>
     </div>
 
-    <!-- Aba: dados do cliente -->
-    <div class="tab-panel" data-panel="dados">
+    <!-- Tab: client info -->
+    <div class="tab-panel" data-panel="info">
       <div id="client-data-view" class="card"></div>
       <div class="btn-row">
-        <button id="btn-edit-client" class="btn btn--secondary btn--block">Editar cliente</button>
-        <button id="btn-delete-client" class="btn btn--danger btn--block">Excluir cliente</button>
+        <button id="btn-edit-client" class="btn btn--secondary btn--block">Edit client</button>
+        <button id="btn-delete-client" class="btn btn--danger btn--block">Delete client</button>
       </div>
     </div>
   </section>

@@ -1,4 +1,4 @@
-// Utilitários simples de interface: toasts e confirmação, sem dependências.
+// Small dependency-free UI helpers: toasts and confirmation.
 
 let toastTimer = null;
 
@@ -13,12 +13,12 @@ export function showToast(message, type = 'info') {
   }, 3200);
 }
 
-/** Confirmação simples via modal nativo do navegador (leve e sem dependências). */
+/** Simple confirmation via the browser's native modal (light, no dependencies). */
 export function confirmAction(message) {
   return window.confirm(message);
 }
 
-export function formatDateBR(isoDate) {
+export function formatDate(isoDate) {
   if (!isoDate) return '—';
   const [y, m, d] = isoDate.split('-');
   return `${d}/${m}/${y}`;
@@ -26,7 +26,7 @@ export function formatDateBR(isoDate) {
 
 export function formatNumber(n, decimals = 1) {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  return n.toFixed(decimals).replace('.', ',');
+  return n.toFixed(decimals);
 }
 
 export function el(tag, attrs = {}, children = []) {

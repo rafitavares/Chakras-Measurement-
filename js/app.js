@@ -6,35 +6,36 @@ import {
   CHAKRA_ORDER,
   CHAKRA_LABELS,
   SPIN_OPTIONS,
-  DOMAIN_LABELS_PT,
+  DOMAIN_LABELS,
   computeVisitTotals,
   weeksBetween,
 } from './calculations.js';
 import { CHAKRA_COLORS, renderDomainChart, renderNeiChart, renderTndcChart, renderChakraChart } from './charts.js';
 import { exportClientCSV, exportClientJSON } from './export.js';
-import { showToast, confirmAction, formatDateBR, formatNumber, el } from './ui.js';
+import { renderBodyMap } from './bodymap.js';
+import { showToast, confirmAction, formatDate, formatNumber, el } from './ui.js';
 
 const SPIN_LABEL_BY_CODE = Object.fromEntries(SPIN_OPTIONS.map((o) => [o.code, o.label]));
 const SPIN_GROUPS = [
-  { label: 'Horário circular', codes: ['C'] },
-  { label: 'Horário elíptico', codes: ['CER', 'CEL', 'CEV', 'CEH', 'CEAS'] },
-  { label: 'Linha reta', codes: ['V', 'H', 'R', 'L'] },
-  { label: 'Anti-horário elíptico', codes: ['CCER', 'CCEL', 'CCEV', 'CCEH', 'CCEAS'] },
-  { label: 'Anti-horário circular', codes: ['CC'] },
-  { label: 'Parado', codes: ['S'] },
+  { label: 'Clockwise Round', codes: ['C'] },
+  { label: 'Clockwise Elliptical', codes: ['CER', 'CEL', 'CEV', 'CEH', 'CEAS'] },
+  { label: 'Straight Line', codes: ['V', 'H', 'R', 'L'] },
+  { label: 'Counterclockwise Elliptical', codes: ['CCER', 'CCEL', 'CCEV', 'CCEH', 'CCEAS'] },
+  { label: 'Counterclockwise Round', codes: ['CC'] },
+  { label: 'Still', codes: ['S'] },
 ];
 
 const state = {
   clients: [],
   currentClientId: null,
   currentClient: null,
-  visits: [], // do cliente atual, ordem cronológica crescente
+  visits: [], // for the current client, ascending chronological order
   editingClientId: null,
-  clientFormOrigin: 'list', // 'list' | 'dados' — para onde o back/salvar leva
+  clientFormOrigin: 'list', // 'list' | 'info' — where back/save should go
   selectedChakras: new Set(),
 };
 
-// ---------- Navegação ----------
+// ---------- Navigation ----------
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('screen--active'));
@@ -56,19 +57,19 @@ function todayISO() {
   return new Date(d.getTime() - offsetMs).toISOString().slice(0, 10);
 }
 
-// ---------- Início ----------
+// ---------- Startup ----------
 
 function initApp() {
   if (!store.isAvailable()) {
-    showToast('O navegador bloqueou o armazenamento local (modo privado?). Os dados não serão salvos.', 'error');
+    showToast('The browser blocked local storage (private mode?). Data will not be saved.', 'error');
   }
   goToClientsList();
 }
 
-// ---------- Lista de clientes ----------
+// ---------- Clients list ----------
 
 function goToClientsList() {
-  setHeader('Meus Clientes', { showBackupMenu: true });
+  setHeader('My Clients', { showBackupMenu: true });
   showScreen('screen-clients');
   document.getElementById('backup-panel').hidden = true;
   loadAndRenderClients();
@@ -83,8 +84,8 @@ function loadAndRenderClients() {
 
   for (const client of state.clients) {
     const meta = client.lastVisitDate
-      ? `Última visita: ${formatDateBR(client.lastVisitDate)} · ${client.visitCount || 0} medição(ões)`
-      : 'Nenhuma medição registrada';
+      ? `Last visit: ${formatDate(client.lastVisitDate)} · ${client.visitCount || 0} reading(s)`
+      : 'No readings recorded yet';
     const item = el('div', { class: 'list-item', onClick: () => openClient(client.id) }, [
       el('div', { class: 'list-item__title' }, client.name),
       el('div', { class: 'list-item__meta' }, meta),
@@ -106,11 +107,11 @@ document.getElementById('btn-backup-menu').addEventListener('click', () => {
 
 document.getElementById('btn-export-backup').addEventListener('click', () => {
   if (!state.clients.length) {
-    showToast('Nenhum cliente para exportar ainda.', 'error');
+    showToast('No clients to export yet.', 'error');
     return;
   }
   exportAllBackup();
-  showToast('Backup exportado.', 'success');
+  showToast('Backup exported.', 'success');
 });
 
 document.getElementById('btn-import-backup').addEventListener('click', () => {
@@ -121,29 +122,31 @@ document.getElementById('input-import-backup').addEventListener('change', async 
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  if (!confirmAction('Importar vai SUBSTITUIR todos os dados salvos neste aparelho pelos do arquivo escolhido. Continuar?')) return;
+  if (!confirmAction('Importing will REPLACE all data saved on this device with the data from the chosen file. Continue?')) return;
   try {
     const count = await importAllBackup(file);
-    showToast(`Backup importado: ${count} cliente(s).`, 'success');
+    showToast(`Backup imported: ${count} client(s).`, 'success');
     goToClientsList();
   } catch (err) {
-    showToast(err.message || 'Erro ao importar backup.', 'error');
+    showToast(err.message || 'Error importing backup.', 'error');
   }
 });
 
-// ---------- Formulário de cliente ----------
+// ---------- Client form ----------
 
 function openClientForm(client, origin) {
   state.editingClientId = client ? client.id : null;
   state.clientFormOrigin = origin;
   document.getElementById('client-name').value = client?.name || '';
   document.getElementById('client-birthdate').value = client?.birthdate || '';
+  document.getElementById('client-sex').value = client?.sex || '';
+  document.getElementById('client-email').value = client?.email || '';
+  document.getElementById('client-phone').value = client?.phone || '';
   document.getElementById('client-complaint').value = client?.complaint || '';
-  document.getElementById('client-contact').value = client?.contact || '';
 
-  setHeader(client ? 'Editar Cliente' : 'Novo Cliente', {
+  setHeader(client ? 'Edit Client' : 'New Client', {
     showBack: true,
-    onBack: () => (origin === 'dados' ? openClient(state.currentClientId, 'dados') : goToClientsList()),
+    onBack: () => (origin === 'info' ? openClient(state.currentClientId, 'info') : goToClientsList()),
   });
   showScreen('screen-client-form');
 }
@@ -153,31 +156,33 @@ document.getElementById('form-client').addEventListener('submit', (e) => {
   const data = {
     name: document.getElementById('client-name').value,
     birthdate: document.getElementById('client-birthdate').value,
+    sex: document.getElementById('client-sex').value,
+    email: document.getElementById('client-email').value,
+    phone: document.getElementById('client-phone').value,
     complaint: document.getElementById('client-complaint').value,
-    contact: document.getElementById('client-contact').value,
   };
   if (!data.name.trim()) {
-    showToast('O nome é obrigatório.', 'error');
+    showToast('Name is required.', 'error');
     return;
   }
   try {
     if (state.editingClientId) {
       ClientsAPI.updateClient(state.editingClientId, data);
-      showToast('Cliente atualizado.', 'success');
-      openClient(state.editingClientId, 'dados');
+      showToast('Client updated.', 'success');
+      openClient(state.editingClientId, 'info');
     } else {
       const newId = ClientsAPI.createClient(data);
-      showToast('Cliente criado.', 'success');
-      openClient(newId, 'medicao');
+      showToast('Client created.', 'success');
+      openClient(newId, 'reading');
     }
   } catch (err) {
-    showToast('Erro ao salvar cliente.', 'error');
+    showToast('Error saving client.', 'error');
   }
 });
 
-// ---------- Detalhe do cliente ----------
+// ---------- Client detail ----------
 
-function openClient(clientId, initialTab = 'historico') {
+function openClient(clientId, initialTab = 'history') {
   state.currentClientId = clientId;
   state.currentClient = ClientsAPI.getClient(clientId);
   state.visits = VisitsAPI.listVisits(clientId);
@@ -204,10 +209,17 @@ function switchClientTab(tabName) {
   document.querySelectorAll('.tab-panel').forEach((p) => {
     p.classList.toggle('tab-panel--active', p.dataset.panel === tabName);
   });
-  if (tabName === 'graficos') renderChartsTab();
+  if (tabName === 'charts') renderChartsTab();
 }
 
-// ---------- Aba: Dados do cliente ----------
+// ---------- Tab: Client info ----------
+
+const SEX_LABELS = {
+  female: 'Female',
+  male: 'Male',
+  other: 'Other',
+  'prefer-not-to-say': 'Prefer not to say',
+};
 
 function renderClientDataTab() {
   const c = state.currentClient;
@@ -215,34 +227,45 @@ function renderClientDataTab() {
   view.innerHTML = '';
   view.appendChild(
     el('dl', { class: 'visit-detail' }, [
-      el('dt', {}, 'Nome'),
+      el('dt', {}, 'Name'),
       el('dd', {}, c.name),
-      el('dt', {}, 'Data de nascimento'),
-      el('dd', {}, c.birthdate ? formatDateBR(c.birthdate) : '—'),
-      el('dt', {}, 'Queixa / observações'),
-      el('dd', {}, c.complaint || '—'),
-      el('dt', {}, 'Contato'),
-      el('dd', {}, c.contact || '—'),
+      el('dt', {}, 'Date of birth'),
+      el('dd', {}, c.birthdate ? formatDate(c.birthdate) : '—'),
+      el('dt', {}, 'Sex'),
+      el('dd', {}, SEX_LABELS[c.sex] || '—'),
+      el('dt', {}, 'E-mail'),
+      el('dd', {}, c.email || '—'),
+      el('dt', {}, 'Phone'),
+      el('dd', {}, c.phone || '—'),
+      el('dt', {}, 'Presenting complaint / notes'),
+      el('dd', {}, complaintListElement(c.complaint)),
     ])
   );
 }
 
+/** Renders the complaint text as a bullet list, one item per non-empty line. */
+function complaintListElement(text) {
+  const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return el('span', {}, '—');
+  return el('ul', { class: 'complaint-list' }, lines.map((line) => el('li', {}, line)));
+}
+
 document.getElementById('btn-edit-client').addEventListener('click', () => {
-  openClientForm(state.currentClient, 'dados');
+  openClientForm(state.currentClient, 'info');
 });
 
 document.getElementById('btn-delete-client').addEventListener('click', () => {
-  if (!confirmAction(`Excluir "${state.currentClient.name}" e todo o histórico dele? Esta ação não pode ser desfeita.`)) return;
+  if (!confirmAction(`Delete "${state.currentClient.name}" and their entire history? This cannot be undone.`)) return;
   ClientsAPI.deleteClient(state.currentClientId);
-  showToast('Cliente excluído.', 'success');
+  showToast('Client deleted.', 'success');
   goToClientsList();
 });
 
-// ---------- Aba: Nova medição / edição ----------
+// ---------- Tab: New/edit reading ----------
 
 function buildSpinSelect(chakra, value) {
-  const select = el('select', { id: `spin-${chakra}`, 'aria-label': `Notação de spin do chakra ${chakra}` });
-  select.appendChild(el('option', { value: '' }, 'Selecione…'));
+  const select = el('select', { id: `spin-${chakra}`, 'aria-label': `Spin notation for chakra ${chakra}` });
+  select.appendChild(el('option', { value: '' }, 'Select…'));
   for (const group of SPIN_GROUPS) {
     const optgroup = document.createElement('optgroup');
     optgroup.label = group.label;
@@ -275,7 +298,7 @@ function buildChakraRows(spins = {}, diameters = {}) {
       placeholder: 'cm',
       value: diameters[chakra] ?? '',
     });
-    const diaLabel = el('label', {}, ['Diâmetro (cm)', diaInput]);
+    const diaLabel = el('label', {}, ['Diameter (cm)', diaInput]);
     fields.appendChild(selectLabel);
     fields.appendChild(diaLabel);
     row.appendChild(fields);
@@ -307,21 +330,23 @@ function recomputeVisitSummary() {
   const box = document.getElementById('visit-summary');
 
   const dominantText = result.dominant.length > 1
-    ? `Empate entre ${result.dominant.map((d) => DOMAIN_LABELS_PT[d]).join(' e ')}`
-    : DOMAIN_LABELS_PT[result.dominant[0]];
-  const secondaryText = result.secondary.map((d) => DOMAIN_LABELS_PT[d]).join(', ');
+    ? `Tie between ${result.dominant.map((d) => DOMAIN_LABELS[d]).join(' and ')}`
+    : DOMAIN_LABELS[result.dominant[0]];
+  const secondaryText = result.secondary.map((d) => DOMAIN_LABELS[d]).join(', ');
 
   box.innerHTML = '';
-  box.appendChild(el('div', {}, [el('strong', {}, 'Razão: '), formatNumber(result.totals.REASON)]));
-  box.appendChild(el('div', {}, [el('strong', {}, 'Emoção: '), formatNumber(result.totals.EMOTION)]));
-  box.appendChild(el('div', {}, [el('strong', {}, 'Vontade: '), formatNumber(result.totals.WILL)]));
-  box.appendChild(el('div', { class: 'dominant' }, `Domínio dominante: ${dominantText}`));
-  if (secondaryText) box.appendChild(el('div', {}, `Secundário: ${secondaryText}`));
-  box.appendChild(el('div', {}, [el('strong', {}, 'NEI: '), `${formatNumber(result.nei)} (referência: −12 a +12)`]));
-  box.appendChild(el('div', {}, [el('strong', {}, 'TNDC: '), `${result.tndc} de 12`]));
+  box.appendChild(el('div', {}, [el('strong', {}, 'Reason: '), formatNumber(result.totals.REASON)]));
+  box.appendChild(el('div', {}, [el('strong', {}, 'Emotion: '), formatNumber(result.totals.EMOTION)]));
+  box.appendChild(el('div', {}, [el('strong', {}, 'Will: '), formatNumber(result.totals.WILL)]));
+  box.appendChild(el('div', { class: 'dominant' }, `Dominant domain: ${dominantText}`));
+  if (secondaryText) box.appendChild(el('div', {}, `Secondary: ${secondaryText}`));
+  box.appendChild(el('div', {}, [el('strong', {}, 'NEI: '), `${formatNumber(result.nei)} (reference: −12 to +12)`]));
+  box.appendChild(el('div', {}, [el('strong', {}, 'TNDC: '), `${result.tndc} of 12`]));
   if (!result.complete) {
-    box.appendChild(el('div', { class: 'muted' }, 'Preencha os 12 chakras para salvar a medição.'));
+    box.appendChild(el('div', { class: 'muted' }, 'Fill in all 12 chakras to save the reading.'));
   }
+
+  renderBodyMap(document.getElementById('bodymap-container'), spins);
 }
 
 function resetVisitForm() {
@@ -340,7 +365,7 @@ function openVisitForEdit(visit) {
   buildChakraRows(visit.spins || {}, visit.diameters || {});
   recomputeVisitSummary();
   document.getElementById('btn-delete-visit').hidden = false;
-  switchClientTab('medicao');
+  switchClientTab('reading');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -349,7 +374,7 @@ document.getElementById('form-visit').addEventListener('submit', (e) => {
   const spins = readSpinsFromForm();
   const totals = computeVisitTotals(spins);
   if (!totals.complete) {
-    showToast('Selecione a notação de todos os 12 chakras antes de salvar.', 'error');
+    showToast('Select the notation for all 12 chakras before saving.', 'error');
     return;
   }
   const data = {
@@ -365,28 +390,28 @@ document.getElementById('form-visit').addEventListener('submit', (e) => {
     } else {
       VisitsAPI.createVisit(state.currentClientId, data);
     }
-    showToast('Medição salva.', 'success');
+    showToast('Reading saved.', 'success');
     state.visits = VisitsAPI.listVisits(state.currentClientId);
     syncClientStats();
     resetVisitForm();
     renderHistoryTab();
-    switchClientTab('historico');
+    switchClientTab('history');
   } catch (err) {
-    showToast('Erro ao salvar a medição.', 'error');
+    showToast('Error saving reading.', 'error');
   }
 });
 
 document.getElementById('btn-delete-visit').addEventListener('click', () => {
   const visitId = document.getElementById('visit-id').value;
   if (!visitId) return;
-  if (!confirmAction('Excluir esta medição?')) return;
+  if (!confirmAction('Delete this reading?')) return;
   VisitsAPI.deleteVisit(state.currentClientId, visitId);
-  showToast('Medição excluída.', 'success');
+  showToast('Reading deleted.', 'success');
   state.visits = VisitsAPI.listVisits(state.currentClientId);
   syncClientStats();
   resetVisitForm();
   renderHistoryTab();
-  switchClientTab('historico');
+  switchClientTab('history');
 });
 
 function syncClientStats() {
@@ -397,7 +422,7 @@ function syncClientStats() {
   });
 }
 
-// ---------- Aba: Histórico ----------
+// ---------- Tab: History ----------
 
 function renderHistoryTab() {
   const list = document.getElementById('history-list');
@@ -409,7 +434,7 @@ function renderHistoryTab() {
   descending.forEach((visit, idxDesc) => {
     const ascIndex = state.visits.length - 1 - idxDesc;
     const totals = computeVisitTotals(visit.spins);
-    const dominantText = totals.dominant.map((d) => DOMAIN_LABELS_PT[d]).join(' + ');
+    const dominantText = totals.dominant.map((d) => DOMAIN_LABELS[d]).join(' + ');
 
     const badges = el('div', { class: 'list-item__badges' }, [
       el('span', { class: 'badge' }, `NEI ${formatNumber(totals.nei)}`),
@@ -417,10 +442,10 @@ function renderHistoryTab() {
       el('span', { class: `badge badge--${totals.dominant[0].toLowerCase()}` }, dominantText),
     ]);
 
-    const metaParts = [formatDateBR(visit.date)];
+    const metaParts = [formatDate(visit.date)];
     if (ascIndex > 0) {
       const prev = state.visits[ascIndex - 1];
-      metaParts.push(`${weeksBetween(prev.date, visit.date)} semana(s) desde a anterior`);
+      metaParts.push(`${weeksBetween(prev.date, visit.date)} week(s) since previous`);
     }
 
     const item = el('div', { class: 'list-item', onClick: () => openVisitForEdit(visit) }, [
@@ -432,16 +457,16 @@ function renderHistoryTab() {
 }
 
 document.getElementById('btn-export-csv').addEventListener('click', () => {
-  if (!state.visits.length) return showToast('Nenhuma medição para exportar.', 'error');
+  if (!state.visits.length) return showToast('No readings to export.', 'error');
   exportClientCSV(state.currentClient, state.visits);
 });
 
 document.getElementById('btn-export-json').addEventListener('click', () => {
-  if (!state.visits.length) return showToast('Nenhuma medição para exportar.', 'error');
+  if (!state.visits.length) return showToast('No readings to export.', 'error');
   exportClientJSON(state.currentClient, state.visits);
 });
 
-// ---------- Aba: Gráficos ----------
+// ---------- Tab: Charts ----------
 
 function renderChartsTab() {
   const empty = document.getElementById('charts-empty');
