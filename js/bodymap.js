@@ -1,9 +1,9 @@
-// Visual body diagram: overlays the 12 chakra points, colored by spin
-// status, on top of a photo-style side-profile illustration
-// (assets/body-male.jpg or assets/body-female.jpg, picked from the
-// client's recorded sex). Point positions are hand-calibrated percentages
-// of each image's width/height, read off the chakra cones already drawn
-// in those reference illustrations.
+// Visual body diagram: overlays a colored cone (echoing the cones already
+// drawn in the reference illustration) at each of the 12 chakra points, on
+// top of a photo-style side-profile image (assets/body-male.jpg or
+// assets/body-female.jpg, picked from the client's recorded sex). Chakra
+// number labels sit in the margins around the image, connected to their
+// point by a thin leader line, so they never cover the photo.
 import { el } from './ui.js';
 import { CHAKRA_ORDER } from './calculations.js';
 
@@ -35,41 +35,65 @@ export function colorForSpin(notation) {
   return COLOR_UNSET;
 }
 
-// { x%, y% } of each chakra's position within its reference image
+// Each point: xPct/yPct = position within the image (0-100), dir = which
+// way its cone flares (matches the cone already drawn in the photo),
+// labelSide = which margin its number is written in.
 const MALE_LAYOUT = {
-  '7': { x: 46.5, y: 7.9 },
-  '6A': { x: 57.6, y: 13.8 },
-  '6B': { x: 42.8, y: 13.5 },
-  '5A': { x: 57.1, y: 23.1 },
-  '5B': { x: 41.4, y: 22.8 },
-  '4A': { x: 58.5, y: 31.8 },
-  '4B': { x: 39.4, y: 31.6 },
-  '3A': { x: 58.5, y: 41.4 },
-  '3B': { x: 38.7, y: 41.4 },
-  '2A': { x: 57.1, y: 50.8 },
-  '2B': { x: 39.4, y: 50.3 },
-  '1': { x: 50.2, y: 52.5 },
+  '7': { xPct: 46.5, yPct: 7.9, dir: 'up', labelSide: 'top' },
+  '6A': { xPct: 57.6, yPct: 13.8, dir: 'right', labelSide: 'right' },
+  '6B': { xPct: 42.8, yPct: 13.5, dir: 'left', labelSide: 'left' },
+  '5A': { xPct: 57.1, yPct: 23.1, dir: 'right', labelSide: 'right' },
+  '5B': { xPct: 41.4, yPct: 22.8, dir: 'left', labelSide: 'left' },
+  '4A': { xPct: 58.5, yPct: 31.8, dir: 'right', labelSide: 'right' },
+  '4B': { xPct: 39.4, yPct: 31.6, dir: 'left', labelSide: 'left' },
+  '3A': { xPct: 58.5, yPct: 41.4, dir: 'right', labelSide: 'right' },
+  '3B': { xPct: 38.7, yPct: 41.4, dir: 'left', labelSide: 'left' },
+  '2A': { xPct: 57.1, yPct: 50.8, dir: 'right', labelSide: 'right' },
+  '2B': { xPct: 39.4, yPct: 50.3, dir: 'left', labelSide: 'left' },
+  '1': { xPct: 50.2, yPct: 52.5, dir: 'down', labelSide: 'right', labelYPct: 61 },
 };
 
 const FEMALE_LAYOUT = {
-  '7': { x: 38.7, y: 9.7 },
-  '6A': { x: 48.3, y: 18.0 },
-  '6B': { x: 31.1, y: 17.0 },
-  '5A': { x: 48.3, y: 27.6 },
-  '5B': { x: 29.0, y: 27.6 },
-  '4A': { x: 50.4, y: 37.3 },
-  '4B': { x: 26.9, y: 36.8 },
-  '3A': { x: 49.7, y: 46.0 },
-  '3B': { x: 26.9, y: 46.5 },
-  '2A': { x: 49.0, y: 53.4 },
-  '2B': { x: 26.9, y: 54.8 },
-  '1': { x: 40.1, y: 56.6 },
+  '7': { xPct: 38.7, yPct: 9.7, dir: 'up', labelSide: 'top' },
+  '6A': { xPct: 48.3, yPct: 18.0, dir: 'right', labelSide: 'right' },
+  '6B': { xPct: 31.1, yPct: 17.0, dir: 'left', labelSide: 'left' },
+  '5A': { xPct: 48.3, yPct: 27.6, dir: 'right', labelSide: 'right' },
+  '5B': { xPct: 29.0, yPct: 27.6, dir: 'left', labelSide: 'left' },
+  '4A': { xPct: 50.4, yPct: 37.3, dir: 'right', labelSide: 'right' },
+  '4B': { xPct: 26.9, yPct: 36.8, dir: 'left', labelSide: 'left' },
+  '3A': { xPct: 49.7, yPct: 46.0, dir: 'right', labelSide: 'right' },
+  '3B': { xPct: 26.9, yPct: 46.5, dir: 'left', labelSide: 'left' },
+  '2A': { xPct: 49.0, yPct: 53.4, dir: 'right', labelSide: 'right' },
+  '2B': { xPct: 26.9, yPct: 54.8, dir: 'left', labelSide: 'left' },
+  '1': { xPct: 40.1, yPct: 56.6, dir: 'down', labelSide: 'right', labelYPct: 65 },
 };
 
 const BODY_VARIANTS = {
-  male: { src: 'assets/body-male.jpg', layout: MALE_LAYOUT, alt: 'Side-profile body diagram (male)' },
-  female: { src: 'assets/body-female.jpg', layout: FEMALE_LAYOUT, alt: 'Side-profile body diagram (female)' },
+  male: { src: 'assets/body-male.jpg', width: 543, height: 724, layout: MALE_LAYOUT, alt: 'Side-profile body diagram (male)' },
+  female: { src: 'assets/body-female.jpg', width: 503, height: 754, layout: FEMALE_LAYOUT, alt: 'Side-profile body diagram (female)' },
 };
+
+const DIR_VECTORS = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs = {}) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  return node;
+}
+
+function coneShape(x, y, dir, imgWidth, color) {
+  const length = imgWidth * 0.1;
+  const spread = imgWidth * 0.045;
+  const [dx, dy] = DIR_VECTORS[dir];
+  const baseX = x + dx * length;
+  const baseY = y + dy * length;
+  const perpX = -dy * spread;
+  const perpY = dx * spread;
+  const d = `M ${x} ${y} L ${baseX + perpX} ${baseY + perpY} L ${baseX - perpX} ${baseY - perpY} Z`;
+  return svgEl('path', { d, fill: color, opacity: '0.82', stroke: '#ffffff', 'stroke-width': imgWidth * 0.003, 'stroke-opacity': '0.7' });
+}
 
 const LEGEND_ITEMS = [
   { color: COLOR_OPEN, text: 'Open, aligned (C)' },
@@ -105,24 +129,69 @@ export function renderBodyMap(container, spins = {}, sex = null) {
   container.innerHTML = '';
 
   const variant = sex === 'male' ? BODY_VARIANTS.male : BODY_VARIANTS.female;
+  const { src, width, height, layout, alt } = variant;
 
-  const wrap = el('div', { class: 'bodymap-wrap' });
-  wrap.appendChild(el('img', { src: variant.src, alt: variant.alt, class: 'bodymap-img' }));
+  const marginX = width * 0.19;
+  const marginTop = height * 0.045;
+  const viewBox = `${-marginX} ${-marginTop} ${width + marginX * 2} ${height + marginTop}`;
+
+  const svg = svgEl('svg', {
+    viewBox,
+    class: 'bodymap-svg',
+    role: 'img',
+    'aria-label': alt,
+  });
+
+  svg.appendChild(svgEl('image', {
+    href: src, x: 0, y: 0, width, height, preserveAspectRatio: 'xMidYMid meet',
+  }));
 
   for (const chakra of CHAKRA_ORDER) {
+    const pos = layout[chakra];
+    const px = (pos.xPct / 100) * width;
+    const py = (pos.yPct / 100) * height;
     const notation = spins[chakra];
     const color = colorForSpin(notation);
-    const pos = variant.layout[chakra];
 
-    const dot = el('span', {
-      class: 'bodymap-dot',
-      style: `left:${pos.x}%; top:${pos.y}%; background:${color};`,
-      title: `${chakra}: ${notation || 'not set'}`,
+    svg.appendChild(coneShape(px, py, pos.dir, width, color));
+
+    const dot = svgEl('circle', {
+      cx: px, cy: py, r: width * 0.016, fill: color, stroke: '#ffffff', 'stroke-width': width * 0.004,
     });
-    dot.appendChild(el('span', { class: 'bodymap-dot-label' }, chakra));
-    wrap.appendChild(dot);
+    const title = svgEl('title');
+    title.textContent = `${chakra}: ${notation || 'not set'}`;
+    dot.appendChild(title);
+    svg.appendChild(dot);
+
+    // leader line + label, out in the margin so it never sits over the photo
+    const labelPy = pos.labelYPct !== undefined ? (pos.labelYPct / 100) * height : py;
+    let labelX, labelY, anchor, lineToX, lineToY;
+    if (pos.labelSide === 'right') {
+      lineToX = width; lineToY = labelPy;
+      labelX = width + marginX * 0.55; labelY = labelPy;
+      anchor = 'start';
+    } else if (pos.labelSide === 'left') {
+      lineToX = 0; lineToY = labelPy;
+      labelX = -marginX * 0.55; labelY = labelPy;
+      anchor = 'end';
+    } else {
+      lineToX = px; lineToY = 0;
+      labelX = px; labelY = -marginTop * 0.45;
+      anchor = 'middle';
+    }
+
+    svg.appendChild(svgEl('line', {
+      x1: px, y1: py, x2: lineToX, y2: lineToY,
+      stroke: '#8a86ad', 'stroke-width': width * 0.0025, 'stroke-dasharray': `${width * 0.006} ${width * 0.006}`,
+    }));
+    const label = svgEl('text', {
+      x: labelX, y: labelY, 'text-anchor': anchor, class: 'bodymap-label', 'font-size': width * 0.042,
+    });
+    label.setAttribute('dominant-baseline', 'middle');
+    label.textContent = chakra;
+    svg.appendChild(label);
   }
 
-  container.appendChild(wrap);
+  container.appendChild(svg);
   container.appendChild(buildLegend());
 }
