@@ -15,6 +15,10 @@ salvos **localmente, só neste aparelho**.
 > referência ao método, para uma ferramenta de uso pessoal/privado da sua
 > prática. Se em algum momento este app for distribuído publicamente ou
 > comercializado, troque essa logo por uma própria.
+>
+> As ilustrações do diagrama corporal (`assets/body-male.jpg`,
+> `assets/body-female.jpg`) foram fornecidas por você; o mesmo cuidado
+> acima se aplica caso a origem delas tenha direitos de uso restritos.
 
 Este guia foi escrito para quem **não é programador**.
 
@@ -115,11 +119,13 @@ Depois disso, o app abre como um aplicativo normal, com ícone próprio.
    notação de spin de cada um dos 12 chakras (o diâmetro é opcional). Dois
    painéis são atualizados em tempo real enquanto você preenche:
    - O **resumo** (Reason/Emotion/Will, domínio dominante, NEI, TNDC);
-   - O **diagrama corporal**, com um boneco mostrando os 12 pontos de chakra
-     na posição anatômica certa, coloridos pelo status de cada um (veja a
-     legenda abaixo do diagrama no próprio app: verde = aberto e alinhado,
-     tons de verde = aberto mas não alinhado, tons de vermelho = fechando,
-     vermelho = fechado, cinza = linha reta, preto = parado).
+   - O **diagrama corporal**, com os 12 pontos de chakra sobrepostos na
+     posição anatômica certa de uma ilustração de perfil (masculina ou
+     feminina, escolhida automaticamente pelo campo **Sex** do cliente),
+     coloridos pelo status de cada um (veja a legenda abaixo do diagrama no
+     próprio app: verde = aberto e alinhado, tons de verde = aberto mas não
+     alinhado, tons de vermelho = fechando, vermelho = fechado, cinza =
+     linha reta, preto = parado).
 3. **History** (Histórico) — lista todas as medições; toque em uma para
    editar ou excluir.
 4. **Charts** (Gráficos) — evolução por domínio, NEI, TNDC e por chakra
@@ -164,6 +170,8 @@ das notações escolhidas (`spins`), garantindo consistência.
 index.html              tela única do app
 css/styles.css          estilo mobile-first
 assets/logo.png          logo BBSH usada no cabeçalho
+assets/body-male.jpg    ilustração de perfil (cliente masculino) para o diagrama corporal
+assets/body-female.jpg  ilustração de perfil (cliente feminino) para o diagrama corporal
 icons/icon-*.png        ícones do PWA (gerados a partir da logo BBSH)
 js/store.js             motor de armazenamento local (localStorage)
 js/calculations.js      tabela de notações e cálculos do método (fonte única da verdade)

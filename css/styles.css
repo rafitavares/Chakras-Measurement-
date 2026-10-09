@@ -257,17 +257,41 @@ input:focus, textarea:focus, select:focus {
 .toast--error { background: var(--color-danger-dark); }
 .toast--success { background: #2f7a53; }
 
-.bodymap-svg {
+.bodymap-wrap {
+  position: relative;
   width: 100%;
-  max-width: 240px;
-  height: auto;
-  display: block;
+  max-width: 260px;
   margin: 0 auto;
 }
-.bodymap-label {
-  font-size: 9px;
+.bodymap-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+}
+.bodymap-dot {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.35);
+  transform: translate(-50%, -50%);
+}
+.bodymap-dot-label {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  font-size: 8px;
   font-weight: 700;
-  fill: #2c2a3a;
+  color: #2c2a3a;
+  background: rgba(255,255,255,0.85);
+  padding: 0 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .bodymap-legend {
   display: flex;

@@ -1,20 +1,11 @@
-// Visual body diagram: renders the 12 chakras at their correct anatomical
-// position on a side-profile silhouette (facing left), each shown as a
-// small colored cone pointing outward from the spine — front (A) cones
-// point toward the face/chest side, back (B) cones point toward the spine
-// side, echoing the classic "front and back views" diagnostic diagram.
-// This is original artwork drawn in code, not a reproduction of any
-// copyrighted book figure.
-//
-// Color rule (per chakra notation):
-//   green          -> open, aligned clockwise round (C)
-//   shades of green-> open clockwise but not aligned (CER/CEL/CEV/CEH/CEAS)
-//   shades of red  -> closing, counterclockwise elliptical (CCER/CCEL/CCEV/CCEH/CCEAS)
-//   red            -> closed, counterclockwise round (CC)
-//   gray           -> straight line movement, vertical or horizontal (V/H/R/L)
-//   black          -> still, no movement (S)
-//   light gray     -> not recorded yet
+// Visual body diagram: overlays the 12 chakra points, colored by spin
+// status, on top of a photo-style side-profile illustration
+// (assets/body-male.jpg or assets/body-female.jpg, picked from the
+// client's recorded sex). Point positions are hand-calibrated percentages
+// of each image's width/height, read off the chakra cones already drawn
+// in those reference illustrations.
 import { el } from './ui.js';
+import { CHAKRA_ORDER } from './calculations.js';
 
 const OPEN_ALIGNED = new Set(['C']);
 const OPEN_ELLIPTICAL = new Set(['CER', 'CEL', 'CEV', 'CEH', 'CEAS']);
@@ -44,63 +35,41 @@ export function colorForSpin(notation) {
   return COLOR_UNSET;
 }
 
-// Layout on a side-profile silhouette facing left (viewBox 0 0 260 460).
-// Single chakras (7 crown, 1 root) sit on the midline; paired chakras show
-// the front (A) point toward the face/chest (left) and the back (B) point
-// toward the spine (right), each with a cone flaring outward in that
-// direction — matching the "Mental / Feeling / Will centers" convention.
-const LAYOUT_POINTS = [
-  { key: '7', x: 100, y: 50, dir: 'up' },
-  { key: '6A', x: 78, y: 76, dir: 'left' },
-  { key: '6B', x: 122, y: 76, dir: 'right' },
-  { key: '5A', x: 74, y: 110, dir: 'left' },
-  { key: '5B', x: 128, y: 110, dir: 'right' },
-  { key: '4A', x: 70, y: 156, dir: 'left' },
-  { key: '4B', x: 132, y: 156, dir: 'right' },
-  { key: '3A', x: 70, y: 196, dir: 'left' },
-  { key: '3B', x: 132, y: 196, dir: 'right' },
-  { key: '2A', x: 72, y: 234, dir: 'left' },
-  { key: '2B', x: 130, y: 234, dir: 'right' },
-  { key: '1', x: 104, y: 258, dir: 'down' },
-];
+// { x%, y% } of each chakra's position within its reference image
+const MALE_LAYOUT = {
+  '7': { x: 46.5, y: 7.9 },
+  '6A': { x: 57.6, y: 13.8 },
+  '6B': { x: 42.8, y: 13.5 },
+  '5A': { x: 57.1, y: 23.1 },
+  '5B': { x: 41.4, y: 22.8 },
+  '4A': { x: 58.5, y: 31.8 },
+  '4B': { x: 39.4, y: 31.6 },
+  '3A': { x: 58.5, y: 41.4 },
+  '3B': { x: 38.7, y: 41.4 },
+  '2A': { x: 57.1, y: 50.8 },
+  '2B': { x: 39.4, y: 50.3 },
+  '1': { x: 50.2, y: 52.5 },
+};
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
+const FEMALE_LAYOUT = {
+  '7': { x: 38.7, y: 9.7 },
+  '6A': { x: 48.3, y: 18.0 },
+  '6B': { x: 31.1, y: 17.0 },
+  '5A': { x: 48.3, y: 27.6 },
+  '5B': { x: 29.0, y: 27.6 },
+  '4A': { x: 50.4, y: 37.3 },
+  '4B': { x: 26.9, y: 36.8 },
+  '3A': { x: 49.7, y: 46.0 },
+  '3B': { x: 26.9, y: 46.5 },
+  '2A': { x: 49.0, y: 53.4 },
+  '2B': { x: 26.9, y: 54.8 },
+  '1': { x: 40.1, y: 56.6 },
+};
 
-function svgEl(tag, attrs = {}) {
-  const node = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-}
-
-function thickLimb(d, width) {
-  return svgEl('path', {
-    d,
-    fill: 'none',
-    stroke: '#d8d4ee',
-    'stroke-width': width,
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round',
-  });
-}
-
-function buildSilhouette() {
-  const g = svgEl('g');
-  // trailing (back) leg, then leading (front) leg, then raised arm — drawn
-  // before the torso/head so their joints tuck underneath
-  g.appendChild(thickLimb('M 112 250 L 104 350 L 98 450', 26));
-  g.appendChild(thickLimb('M 122 252 L 142 350 L 160 450', 26));
-  g.appendChild(thickLimb('M 92 126 L 56 94 L 40 52', 15));
-
-  const body = svgEl('g', { fill: '#d8d4ee', stroke: '#b9b2dd', 'stroke-width': '1.5' });
-  body.appendChild(svgEl('circle', { cx: 100, cy: 78, r: 25 })); // head
-  body.appendChild(svgEl('path', { d: 'M 75 80 L 62 86 L 75 90 Z' })); // nose/profile cue
-  body.appendChild(svgEl('rect', { x: 92, y: 100, width: 16, height: 16, rx: 4 })); // neck
-  body.appendChild(svgEl('path', {
-    d: 'M 78 114 C 64 114 60 140 64 170 C 67 195 66 220 76 252 L 128 252 C 138 220 137 195 140 170 C 144 140 140 114 126 114 Z',
-  })); // torso, tapered at waist
-  g.appendChild(body);
-  return g;
-}
+const BODY_VARIANTS = {
+  male: { src: 'assets/body-male.jpg', layout: MALE_LAYOUT, alt: 'Side-profile body diagram (male)' },
+  female: { src: 'assets/body-female.jpg', layout: FEMALE_LAYOUT, alt: 'Side-profile body diagram (female)' },
+};
 
 const LEGEND_ITEMS = [
   { color: COLOR_OPEN, text: 'Open, aligned (C)' },
@@ -125,78 +94,35 @@ function buildLegend() {
   );
 }
 
-const DIR_VECTORS = {
-  left: [-1, 0],
-  right: [1, 0],
-  up: [0, -1],
-  down: [0, 1],
-};
-
-function coneShape(point, color) {
-  const [dx, dy] = DIR_VECTORS[point.dir];
-  const length = 22;
-  const spread = 10;
-  const tipX = point.x;
-  const tipY = point.y;
-  const baseX = point.x + dx * length;
-  const baseY = point.y + dy * length;
-  // perpendicular vector for the cone's flare width
-  const perpX = -dy * spread;
-  const perpY = dx * spread;
-  const d = `M ${tipX} ${tipY} L ${baseX + perpX} ${baseY + perpY} L ${baseX - perpX} ${baseY - perpY} Z`;
-  return svgEl('path', { d, fill: color, opacity: '0.55' });
-}
-
-function labelPosition(point) {
-  const [dx, dy] = DIR_VECTORS[point.dir];
-  const offset = 34;
-  const x = point.x + dx * offset;
-  const y = point.y + dy * offset + 3;
-  const anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
-  return { x, y, anchor };
-}
-
 /**
  * Renders the body map into `container` for the given spins.
  * @param {HTMLElement} container
  * @param {Object<string,string>} spins
+ * @param {string|null} sex - client's recorded sex; anything other than
+ *   'male' falls back to the female illustration.
  */
-export function renderBodyMap(container, spins = {}) {
+export function renderBodyMap(container, spins = {}, sex = null) {
   container.innerHTML = '';
 
-  const svg = svgEl('svg', {
-    viewBox: '0 0 260 470',
-    class: 'bodymap-svg',
-    role: 'img',
-    'aria-label': 'Body diagram, side profile, with chakra status by color',
-  });
-  svg.appendChild(buildSilhouette());
+  const variant = sex === 'male' ? BODY_VARIANTS.male : BODY_VARIANTS.female;
 
-  for (const point of LAYOUT_POINTS) {
-    const notation = spins[point.key];
+  const wrap = el('div', { class: 'bodymap-wrap' });
+  wrap.appendChild(el('img', { src: variant.src, alt: variant.alt, class: 'bodymap-img' }));
+
+  for (const chakra of CHAKRA_ORDER) {
+    const notation = spins[chakra];
     const color = colorForSpin(notation);
+    const pos = variant.layout[chakra];
 
-    svg.appendChild(coneShape(point, color));
-
-    const circle = svgEl('circle', {
-      cx: point.x,
-      cy: point.y,
-      r: 8,
-      fill: color,
-      stroke: '#ffffff',
-      'stroke-width': 2,
+    const dot = el('span', {
+      class: 'bodymap-dot',
+      style: `left:${pos.x}%; top:${pos.y}%; background:${color};`,
+      title: `${chakra}: ${notation || 'not set'}`,
     });
-    const title = svgEl('title');
-    title.textContent = `${point.key}: ${notation || 'not set'}`;
-    circle.appendChild(title);
-    svg.appendChild(circle);
-
-    const { x, y, anchor } = labelPosition(point);
-    const label = svgEl('text', { x, y, 'text-anchor': anchor, class: 'bodymap-label' });
-    label.textContent = point.key;
-    svg.appendChild(label);
+    dot.appendChild(el('span', { class: 'bodymap-dot-label' }, chakra));
+    wrap.appendChild(dot);
   }
 
-  container.appendChild(svg);
+  container.appendChild(wrap);
   container.appendChild(buildLegend());
 }

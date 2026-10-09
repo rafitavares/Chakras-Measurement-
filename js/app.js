@@ -363,7 +363,7 @@ function recomputeVisitSummary() {
     box.appendChild(el('div', { class: 'muted' }, 'Fill in all 12 chakras to save the reading.'));
   }
 
-  renderBodyMap(document.getElementById('bodymap-container'), spins);
+  renderBodyMap(document.getElementById('bodymap-container'), spins, state.currentClient?.sex);
 }
 
 function resetVisitForm() {
