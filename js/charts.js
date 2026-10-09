@@ -35,6 +35,7 @@ function baseOptions(extra = {}) {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },

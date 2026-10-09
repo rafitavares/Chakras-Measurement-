@@ -126,7 +126,12 @@ Depois disso, o app abre como um aplicativo normal, com ícone próprio.
    individual (a partir de 2 medições registradas).
 5. **Exportar (por cliente)** — na aba History de cada cliente, exporte o
    histórico dele em CSV ou JSON (para analisar numa planilha, por exemplo).
-6. **Backup (todos os clientes)** — no menu ⋮ da tela de clientes, exporte
+6. **Generate PDF report** — na aba Client Info, gera e baixa um PDF com os
+   dados do cliente, a lista de datas de medição (com semanas entre
+   visitas, NEI, TNDC e domínio dominante de cada uma) e os 4 gráficos de
+   evolução (a partir de 2 medições registradas). Exige internet na hora de
+   gerar (carrega a biblioteca de PDF de um CDN na primeira vez).
+7. **Backup (todos os clientes)** — no menu ⋮ da tela de clientes, exporte
    ou importe um backup completo, para levar os dados para outro aparelho.
 
 ### O método por trás dos números
@@ -166,6 +171,7 @@ js/clients.js           CRUD de clientes (local)
 js/visits.js            CRUD de medições/visitas (local)
 js/backup.js            exportar/importar backup completo (.json)
 js/export.js            exportação CSV/JSON por cliente
+js/report.js            relatório em PDF do cliente (dados + histórico + gráficos)
 js/charts.js            gráficos (Chart.js)
 js/bodymap.js           diagrama corporal com cores por status do chakra
 js/ui.js                pequenos utilitários de interface

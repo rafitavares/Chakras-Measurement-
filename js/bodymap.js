@@ -1,5 +1,10 @@
 // Visual body diagram: renders the 12 chakras at their correct anatomical
-// position on a simple front-facing silhouette, colored by spin status.
+// position on a side-profile silhouette (facing left), each shown as a
+// small colored cone pointing outward from the spine — front (A) cones
+// point toward the face/chest side, back (B) cones point toward the spine
+// side, echoing the classic "front and back views" diagnostic diagram.
+// This is original artwork drawn in code, not a reproduction of any
+// copyrighted book figure.
 //
 // Color rule (per chakra notation):
 //   green          -> open, aligned clockwise round (C)
@@ -39,22 +44,24 @@ export function colorForSpin(notation) {
   return COLOR_UNSET;
 }
 
-// Layout on a simple front-facing silhouette (viewBox 0 0 200 380).
-// Single chakras (7, 1) are centered on the body's midline; paired chakras
-// show the back (B) point on the left and the front (A) point on the right.
+// Layout on a side-profile silhouette facing left (viewBox 0 0 260 460).
+// Single chakras (7 crown, 1 root) sit on the midline; paired chakras show
+// the front (A) point toward the face/chest (left) and the back (B) point
+// toward the spine (right), each with a cone flaring outward in that
+// direction — matching the "Mental / Feeling / Will centers" convention.
 const LAYOUT_POINTS = [
-  { key: '7', x: 100, y: 18 },
-  { key: '6B', x: 86, y: 46 },
-  { key: '6A', x: 114, y: 46 },
-  { key: '5B', x: 84, y: 76 },
-  { key: '5A', x: 116, y: 76 },
-  { key: '4B', x: 76, y: 122 },
-  { key: '4A', x: 124, y: 122 },
-  { key: '3B', x: 76, y: 160 },
-  { key: '3A', x: 124, y: 160 },
-  { key: '2B', x: 76, y: 198 },
-  { key: '2A', x: 124, y: 198 },
-  { key: '1', x: 100, y: 224 },
+  { key: '7', x: 100, y: 50, dir: 'up' },
+  { key: '6A', x: 78, y: 76, dir: 'left' },
+  { key: '6B', x: 122, y: 76, dir: 'right' },
+  { key: '5A', x: 74, y: 110, dir: 'left' },
+  { key: '5B', x: 128, y: 110, dir: 'right' },
+  { key: '4A', x: 70, y: 156, dir: 'left' },
+  { key: '4B', x: 132, y: 156, dir: 'right' },
+  { key: '3A', x: 70, y: 196, dir: 'left' },
+  { key: '3B', x: 132, y: 196, dir: 'right' },
+  { key: '2A', x: 72, y: 234, dir: 'left' },
+  { key: '2B', x: 130, y: 234, dir: 'right' },
+  { key: '1', x: 104, y: 258, dir: 'down' },
 ];
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -65,18 +72,33 @@ function svgEl(tag, attrs = {}) {
   return node;
 }
 
+function thickLimb(d, width) {
+  return svgEl('path', {
+    d,
+    fill: 'none',
+    stroke: '#d8d4ee',
+    'stroke-width': width,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  });
+}
+
 function buildSilhouette() {
-  const g = svgEl('g', { fill: '#d8d4ee', stroke: '#b9b2dd', 'stroke-width': '1.5' });
-  g.appendChild(svgEl('circle', { cx: 100, cy: 42, r: 24 })); // head
-  g.appendChild(svgEl('rect', { x: 92, y: 63, width: 16, height: 16, rx: 4 })); // neck
-  g.appendChild(svgEl('rect', { x: 55, y: 77, width: 90, height: 122, rx: 30 })); // torso
-  g.appendChild(svgEl('rect', { x: 30, y: 84, width: 17, height: 108, rx: 8.5 })); // left arm
-  g.appendChild(svgEl('rect', { x: 153, y: 84, width: 17, height: 108, rx: 8.5 })); // right arm
-  g.appendChild(svgEl('rect', { x: 60, y: 192, width: 80, height: 38, rx: 18 })); // hips
-  g.appendChild(svgEl('rect', { x: 64, y: 226, width: 27, height: 130, rx: 13 })); // left leg
-  g.appendChild(svgEl('rect', { x: 109, y: 226, width: 27, height: 130, rx: 13 })); // right leg
-  g.appendChild(svgEl('ellipse', { cx: 77, cy: 362, rx: 15, ry: 7 })); // left foot
-  g.appendChild(svgEl('ellipse', { cx: 123, cy: 362, rx: 15, ry: 7 })); // right foot
+  const g = svgEl('g');
+  // trailing (back) leg, then leading (front) leg, then raised arm — drawn
+  // before the torso/head so their joints tuck underneath
+  g.appendChild(thickLimb('M 112 250 L 104 350 L 98 450', 26));
+  g.appendChild(thickLimb('M 122 252 L 142 350 L 160 450', 26));
+  g.appendChild(thickLimb('M 92 126 L 56 94 L 40 52', 15));
+
+  const body = svgEl('g', { fill: '#d8d4ee', stroke: '#b9b2dd', 'stroke-width': '1.5' });
+  body.appendChild(svgEl('circle', { cx: 100, cy: 78, r: 25 })); // head
+  body.appendChild(svgEl('path', { d: 'M 75 80 L 62 86 L 75 90 Z' })); // nose/profile cue
+  body.appendChild(svgEl('rect', { x: 92, y: 100, width: 16, height: 16, rx: 4 })); // neck
+  body.appendChild(svgEl('path', {
+    d: 'M 78 114 C 64 114 60 140 64 170 C 67 195 66 220 76 252 L 128 252 C 138 220 137 195 140 170 C 144 140 140 114 126 114 Z',
+  })); // torso, tapered at waist
+  g.appendChild(body);
   return g;
 }
 
@@ -103,6 +125,37 @@ function buildLegend() {
   );
 }
 
+const DIR_VECTORS = {
+  left: [-1, 0],
+  right: [1, 0],
+  up: [0, -1],
+  down: [0, 1],
+};
+
+function coneShape(point, color) {
+  const [dx, dy] = DIR_VECTORS[point.dir];
+  const length = 22;
+  const spread = 10;
+  const tipX = point.x;
+  const tipY = point.y;
+  const baseX = point.x + dx * length;
+  const baseY = point.y + dy * length;
+  // perpendicular vector for the cone's flare width
+  const perpX = -dy * spread;
+  const perpY = dx * spread;
+  const d = `M ${tipX} ${tipY} L ${baseX + perpX} ${baseY + perpY} L ${baseX - perpX} ${baseY - perpY} Z`;
+  return svgEl('path', { d, fill: color, opacity: '0.55' });
+}
+
+function labelPosition(point) {
+  const [dx, dy] = DIR_VECTORS[point.dir];
+  const offset = 34;
+  const x = point.x + dx * offset;
+  const y = point.y + dy * offset + 3;
+  const anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
+  return { x, y, anchor };
+}
+
 /**
  * Renders the body map into `container` for the given spins.
  * @param {HTMLElement} container
@@ -112,10 +165,10 @@ export function renderBodyMap(container, spins = {}) {
   container.innerHTML = '';
 
   const svg = svgEl('svg', {
-    viewBox: '0 0 200 380',
+    viewBox: '0 0 260 470',
     class: 'bodymap-svg',
     role: 'img',
-    'aria-label': 'Body diagram with chakra status by color',
+    'aria-label': 'Body diagram, side profile, with chakra status by color',
   });
   svg.appendChild(buildSilhouette());
 
@@ -123,10 +176,12 @@ export function renderBodyMap(container, spins = {}) {
     const notation = spins[point.key];
     const color = colorForSpin(notation);
 
+    svg.appendChild(coneShape(point, color));
+
     const circle = svgEl('circle', {
       cx: point.x,
       cy: point.y,
-      r: 10,
+      r: 8,
       fill: color,
       stroke: '#ffffff',
       'stroke-width': 2,
@@ -134,16 +189,11 @@ export function renderBodyMap(container, spins = {}) {
     const title = svgEl('title');
     title.textContent = `${point.key}: ${notation || 'not set'}`;
     circle.appendChild(title);
-
-    const label = svgEl('text', {
-      x: point.x,
-      y: point.y + 20,
-      'text-anchor': 'middle',
-      class: 'bodymap-label',
-    });
-    label.textContent = point.key;
-
     svg.appendChild(circle);
+
+    const { x, y, anchor } = labelPosition(point);
+    const label = svgEl('text', { x, y, 'text-anchor': anchor, class: 'bodymap-label' });
+    label.textContent = point.key;
     svg.appendChild(label);
   }
 

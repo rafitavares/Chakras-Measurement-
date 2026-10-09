@@ -13,6 +13,7 @@ import {
 import { CHAKRA_COLORS, renderDomainChart, renderNeiChart, renderTndcChart, renderChakraChart } from './charts.js';
 import { exportClientCSV, exportClientJSON } from './export.js';
 import { renderBodyMap } from './bodymap.js';
+import { generateClientReportPDF } from './report.js';
 import { showToast, confirmAction, formatDate, formatNumber, el } from './ui.js';
 
 const SPIN_LABEL_BY_CODE = Object.fromEntries(SPIN_OPTIONS.map((o) => [o.code, o.label]));
@@ -259,6 +260,22 @@ document.getElementById('btn-delete-client').addEventListener('click', () => {
   ClientsAPI.deleteClient(state.currentClientId);
   showToast('Client deleted.', 'success');
   goToClientsList();
+});
+
+document.getElementById('btn-pdf-report').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Generating…';
+  try {
+    await generateClientReportPDF(state.currentClient, state.visits);
+    showToast('PDF report downloaded.', 'success');
+  } catch (err) {
+    showToast('Error generating PDF report.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
 });
 
 // ---------- Tab: New/edit reading ----------
