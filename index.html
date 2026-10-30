@@ -88,16 +88,30 @@
     <!-- Tab: new reading -->
     <div class="tab-panel" data-panel="reading">
       <form id="form-visit" class="card">
-        <input type="hidden" id="visit-id" />
         <label>Visit date
           <input type="date" id="visit-date" required />
         </label>
 
-        <div id="visit-chakras" class="chakra-grid"></div>
+        <p class="muted picker-hint">Tap a chakra on the diagram, then pick its spin shape and diameter.</p>
 
-        <div class="chart-card">
-          <h3>Body map</h3>
-          <div id="bodymap-container"></div>
+        <div class="reading-layout">
+          <div class="reading-layout__image">
+            <div id="bodymap-container"></div>
+          </div>
+          <div class="reading-layout__picker">
+            <div class="picker-header">
+              <button type="button" id="btn-prev-chakra" class="icon-btn-sm" aria-label="Previous chakra">&larr;</button>
+              <div id="picker-chakra-label" class="picker-chakra-label"></div>
+              <button type="button" id="btn-next-chakra" class="icon-btn-sm" aria-label="Next chakra">&rarr;</button>
+            </div>
+            <div id="picker-icons" class="picker-icons"></div>
+            <div class="picker-diameter">
+              <span class="picker-diameter__label">Diameter (cm)</span>
+              <div id="picker-diameters" class="picker-diameters"></div>
+            </div>
+            <div id="picker-preview" class="picker-preview"></div>
+            <div id="picker-progress" class="muted picker-progress"></div>
+          </div>
         </div>
 
         <label>Session notes

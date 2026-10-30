@@ -119,14 +119,18 @@ function buildLegend() {
 }
 
 /**
- * Renders the body map into `container` for the given spins.
+ * Renders the body map into `container` for the given spins. Each chakra
+ * point is tappable; tapping it calls `onSelectChakra(chakra)` and the
+ * currently active chakra is drawn with a highlight ring and bold label.
  * @param {HTMLElement} container
  * @param {Object<string,string>} spins
  * @param {string|null} sex - client's recorded sex; anything other than
  *   'male' falls back to the female illustration.
+ * @param {{activeChakra?: string, onSelectChakra?: (chakra:string)=>void}} [opts]
  */
-export function renderBodyMap(container, spins = {}, sex = null) {
+export function renderBodyMap(container, spins = {}, sex = null, opts = {}) {
   container.innerHTML = '';
+  const { activeChakra = null, onSelectChakra = null } = opts;
 
   const variant = sex === 'male' ? BODY_VARIANTS.male : BODY_VARIANTS.female;
   const { src, width, height, layout, alt } = variant;
@@ -143,7 +147,7 @@ export function renderBodyMap(container, spins = {}, sex = null) {
   });
 
   svg.appendChild(svgEl('image', {
-    href: src, x: 0, y: 0, width, height, preserveAspectRatio: 'xMidYMid meet',
+    href: src, x: 0, y: 0, width, height, preserveAspectRatio: 'xMidYMid meet', 'pointer-events': 'none',
   }));
 
   for (const chakra of CHAKRA_ORDER) {
@@ -152,8 +156,29 @@ export function renderBodyMap(container, spins = {}, sex = null) {
     const py = (pos.yPct / 100) * height;
     const notation = spins[chakra];
     const color = colorForSpin(notation);
+    const isActive = chakra === activeChakra;
 
-    svg.appendChild(coneShape(px, py, pos.dir, width, color));
+    const group = svgEl('g', { class: `bodymap-point${isActive ? ' bodymap-point--active' : ''}` });
+    if (onSelectChakra) {
+      group.setAttribute('tabindex', '0');
+      group.setAttribute('role', 'button');
+      group.setAttribute('aria-label', `Select chakra ${chakra}`);
+      group.addEventListener('click', () => onSelectChakra(chakra));
+      group.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectChakra(chakra); }
+      });
+    }
+
+    // invisible larger hit-area so small cones stay easy to tap on mobile
+    group.appendChild(svgEl('circle', { cx: px, cy: py, r: width * 0.075, fill: '#000', 'fill-opacity': '0', 'pointer-events': 'all' }));
+
+    group.appendChild(coneShape(px, py, pos.dir, width, color));
+
+    if (isActive) {
+      group.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: width * 0.028, fill: 'none', stroke: '#2c2a3a', 'stroke-width': width * 0.006,
+      }));
+    }
 
     const dot = svgEl('circle', {
       cx: px, cy: py, r: width * 0.016, fill: color, stroke: '#ffffff', 'stroke-width': width * 0.004,
@@ -161,7 +186,7 @@ export function renderBodyMap(container, spins = {}, sex = null) {
     const title = svgEl('title');
     title.textContent = `${chakra}: ${notation || 'not set'}`;
     dot.appendChild(title);
-    svg.appendChild(dot);
+    group.appendChild(dot);
 
     // leader line + label, out in the margin so it never sits over the photo
     const labelPy = pos.labelYPct !== undefined ? (pos.labelYPct / 100) * height : py;
@@ -180,16 +205,21 @@ export function renderBodyMap(container, spins = {}, sex = null) {
       anchor = 'middle';
     }
 
-    svg.appendChild(svgEl('line', {
+    group.appendChild(svgEl('line', {
       x1: px, y1: py, x2: lineToX, y2: lineToY,
-      stroke: '#8a86ad', 'stroke-width': width * 0.0025, 'stroke-dasharray': `${width * 0.006} ${width * 0.006}`,
+      stroke: isActive ? '#5b6fd6' : '#8a86ad', 'stroke-width': width * (isActive ? 0.004 : 0.0025),
+      'stroke-dasharray': isActive ? '' : `${width * 0.006} ${width * 0.006}`,
     }));
     const label = svgEl('text', {
-      x: labelX, y: labelY, 'text-anchor': anchor, class: 'bodymap-label', 'font-size': width * 0.042,
+      x: labelX, y: labelY, 'text-anchor': anchor,
+      class: `bodymap-label${isActive ? ' bodymap-label--active' : ''}`,
+      'font-size': width * (isActive ? 0.05 : 0.042),
     });
     label.setAttribute('dominant-baseline', 'middle');
     label.textContent = chakra;
-    svg.appendChild(label);
+    group.appendChild(label);
+
+    svg.appendChild(group);
   }
 
   container.appendChild(svg);

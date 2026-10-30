@@ -115,17 +115,26 @@ Depois disso, o app abre como um aplicativo normal, com ícone próprio.
    telefone) são opcionais. No campo de queixa/observações, **cada linha que
    você digitar vira um item com marcador** (bullet point) na tela de dados
    do cliente — útil para listar vários sintomas separadamente.
-2. **New Reading** (Nova medição) — dentro do cliente, escolha a data e a
-   notação de spin de cada um dos 12 chakras (o diâmetro é opcional). Dois
-   painéis são atualizados em tempo real enquanto você preenche:
-   - O **resumo** (Reason/Emotion/Will, domínio dominante, NEI, TNDC);
-   - O **diagrama corporal**, com os 12 pontos de chakra sobrepostos na
-     posição anatômica certa de uma ilustração de perfil (masculina ou
-     feminina, escolhida automaticamente pelo campo **Sex** do cliente),
-     coloridos pelo status de cada um (veja a legenda abaixo do diagrama no
-     próprio app: verde = aberto e alinhado, tons de verde = aberto mas não
-     alinhado, tons de vermelho = fechando, vermelho = fechado, cinza =
-     linha reta, preto = parado).
+2. **New Reading** (Nova medição) — escolha a data e toque num dos 12
+   pontos de chakra no **diagrama corporal** (ilustração de perfil
+   masculina ou feminina, escolhida automaticamente pelo campo **Sex** do
+   cliente). O chakra tocado fica em destaque, e no painel ao lado (ou
+   abaixo, em telas estreitas) você:
+   - Toca no **símbolo** que representa o desenho que o pêndulo faz (círculo
+     horário, elíptico, linha reta, parado etc. — sem precisar ler ou
+     digitar o código);
+   - Toca no **diâmetro** (cm), também por toque, não por digitação;
+   - Vê na hora o código resultante (ex.: `C · 3 cm`) e quantos dos 12 já
+     foram preenchidos.
+   Use as setas **◀ ▶** (ou toque direto noutro ponto do diagrama) para
+   passar de um chakra para o outro. Em telas largas/paisagem, o diagrama e
+   o painel de seleção ficam lado a lado; em telas estreitas, um embaixo do
+   outro — sempre na mesma tela, sem precisar rolar por uma lista longa.
+   Os cones do diagrama ficam coloridos pelo status de cada chakra (veja a
+   legenda abaixo dele: verde = aberto e alinhado, tons de verde = aberto
+   mas não alinhado, tons de vermelho = fechando, vermelho = fechado, cinza
+   = linha reta, preto = parado), e o resumo (Reason/Emotion/Will, domínio
+   dominante, NEI, TNDC) é atualizado em tempo real abaixo.
 3. **History** (Histórico) — lista todas as medições; toque em uma para
    editar ou excluir.
 4. **Charts** (Gráficos) — evolução por domínio, NEI, TNDC e por chakra
@@ -181,7 +190,8 @@ js/backup.js            exportar/importar backup completo (.json)
 js/export.js            exportação CSV/JSON por cliente
 js/report.js            relatório em PDF do cliente (dados + histórico + gráficos)
 js/charts.js            gráficos (Chart.js)
-js/bodymap.js           diagrama corporal com cores por status do chakra
+js/bodymap.js           diagrama corporal interativo (toque para selecionar o chakra)
+js/spinicons.js         ícones do desenho do pêndulo (círculo, elíptico, linha, parado) para o seletor
 js/ui.js                pequenos utilitários de interface
 js/app.js               controlador principal (telas, navegação, eventos)
 manifest.json + sw.js   suporte a instalação como PWA

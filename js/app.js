@@ -13,6 +13,7 @@ import {
 import { CHAKRA_COLORS, renderDomainChart, renderNeiChart, renderTndcChart, renderChakraChart } from './charts.js';
 import { exportClientCSV, exportClientJSON } from './export.js';
 import { renderBodyMap } from './bodymap.js';
+import { buildSpinIcon } from './spinicons.js';
 import { generateClientReportPDF } from './report.js';
 import { showToast, confirmAction, formatDate, formatNumber, el } from './ui.js';
 
@@ -279,71 +280,77 @@ document.getElementById('btn-pdf-report').addEventListener('click', async (e) =>
 });
 
 // ---------- Tab: New/edit reading ----------
+// Instead of 12 dropdown rows, the chakras are picked by tapping them on
+// the body map; the active chakra's spin (as a shape icon) and diameter
+// are chosen from the picker panel beside/below it. `visitEdit` holds the
+// in-progress reading; it is plain in-memory state, never touching
+// localStorage until "Save reading" is pressed (so nothing here can lose
+// already-saved data).
+const DIAMETER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20];
 
-function buildSpinSelect(chakra, value) {
-  const select = el('select', { id: `spin-${chakra}`, 'aria-label': `Spin notation for chakra ${chakra}` });
-  select.appendChild(el('option', { value: '' }, 'Select…'));
-  for (const group of SPIN_GROUPS) {
-    const optgroup = document.createElement('optgroup');
-    optgroup.label = group.label;
-    for (const code of group.codes) {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = SPIN_LABEL_BY_CODE[code];
-      if (code === value) opt.selected = true;
-      optgroup.appendChild(opt);
-    }
-    select.appendChild(optgroup);
-  }
-  select.addEventListener('change', recomputeVisitSummary);
-  return select;
+const visitEdit = {
+  visitId: null,
+  spins: {},
+  diameters: {},
+  activeChakra: CHAKRA_ORDER[0],
+};
+
+function selectChakra(chakra) {
+  visitEdit.activeChakra = chakra;
+  renderReadingUI();
 }
 
-function buildChakraRows(spins = {}, diameters = {}) {
-  const container = document.getElementById('visit-chakras');
+function setSpin(chakra, code) {
+  visitEdit.spins[chakra] = code;
+  renderReadingUI();
+}
+
+function setDiameter(chakra, value) {
+  if (value === undefined) delete visitEdit.diameters[chakra];
+  else visitEdit.diameters[chakra] = value;
+  renderReadingUI();
+}
+
+function buildIconPicker() {
+  const container = document.getElementById('picker-icons');
   container.innerHTML = '';
-  for (const chakra of CHAKRA_ORDER) {
-    const row = el('div', { class: 'chakra-row', style: `border-left-color:${CHAKRA_COLORS[chakra]}` });
-    row.appendChild(el('div', { class: 'chakra-row__label' }, CHAKRA_LABELS[chakra]));
-    const fields = el('div', { class: 'chakra-row__fields' });
-    const selectLabel = el('label', {}, ['Spin', buildSpinSelect(chakra, spins[chakra])]);
-    const diaInput = el('input', {
-      type: 'number',
-      step: '0.1',
-      min: '0',
-      id: `dia-${chakra}`,
-      placeholder: 'cm',
-      value: diameters[chakra] ?? '',
-    });
-    const diaLabel = el('label', {}, ['Diameter (cm)', diaInput]);
-    fields.appendChild(selectLabel);
-    fields.appendChild(diaLabel);
-    row.appendChild(fields);
-    container.appendChild(row);
+  const current = visitEdit.spins[visitEdit.activeChakra];
+  for (const group of SPIN_GROUPS) {
+    for (const code of group.codes) {
+      const selected = current === code;
+      const btn = el('button', {
+        type: 'button',
+        class: `picker-icon-btn${selected ? ' picker-icon-btn--selected' : ''}`,
+        title: SPIN_LABEL_BY_CODE[code],
+        'aria-label': SPIN_LABEL_BY_CODE[code],
+        onClick: () => setSpin(visitEdit.activeChakra, code),
+      });
+      btn.appendChild(buildSpinIcon(code, { size: 30 }));
+      container.appendChild(btn);
+    }
   }
 }
 
-function readSpinsFromForm() {
-  const spins = {};
-  for (const chakra of CHAKRA_ORDER) {
-    const value = document.getElementById(`spin-${chakra}`).value;
-    if (value) spins[chakra] = value;
+function buildDiameterPicker() {
+  const container = document.getElementById('picker-diameters');
+  container.innerHTML = '';
+  const current = visitEdit.diameters[visitEdit.activeChakra];
+  container.appendChild(el('button', {
+    type: 'button',
+    class: `picker-diameter-chip${current === undefined ? ' picker-diameter-chip--selected' : ''}`,
+    onClick: () => setDiameter(visitEdit.activeChakra, undefined),
+  }, '—'));
+  for (const d of DIAMETER_OPTIONS) {
+    container.appendChild(el('button', {
+      type: 'button',
+      class: `picker-diameter-chip${current === d ? ' picker-diameter-chip--selected' : ''}`,
+      onClick: () => setDiameter(visitEdit.activeChakra, d),
+    }, String(d)));
   }
-  return spins;
 }
 
-function readDiametersFromForm() {
-  const diameters = {};
-  for (const chakra of CHAKRA_ORDER) {
-    const value = document.getElementById(`dia-${chakra}`).value;
-    if (value !== '') diameters[chakra] = Number(value);
-  }
-  return diameters;
-}
-
-function recomputeVisitSummary() {
-  const spins = readSpinsFromForm();
-  const result = computeVisitTotals(spins);
+function renderSummaryBox() {
+  const result = computeVisitTotals(visitEdit.spins);
   const box = document.getElementById('visit-summary');
 
   const dominantText = result.dominant.length > 1
@@ -360,50 +367,80 @@ function recomputeVisitSummary() {
   box.appendChild(el('div', {}, [el('strong', {}, 'NEI: '), `${formatNumber(result.nei)} (reference: −12 to +12)`]));
   box.appendChild(el('div', {}, [el('strong', {}, 'TNDC: '), `${result.tndc} of 12`]));
   if (!result.complete) {
-    box.appendChild(el('div', { class: 'muted' }, 'Fill in all 12 chakras to save the reading.'));
+    box.appendChild(el('div', { class: 'muted' }, 'Pick a shape for all 12 chakras to save the reading.'));
   }
-
-  renderBodyMap(document.getElementById('bodymap-container'), spins, state.currentClient?.sex);
 }
 
+function renderReadingUI() {
+  document.getElementById('picker-chakra-label').textContent = CHAKRA_LABELS[visitEdit.activeChakra];
+  buildIconPicker();
+  buildDiameterPicker();
+
+  const code = visitEdit.spins[visitEdit.activeChakra];
+  const dia = visitEdit.diameters[visitEdit.activeChakra];
+  document.getElementById('picker-preview').textContent = code
+    ? (dia !== undefined ? `${code} · ${dia} cm` : code)
+    : 'Not set yet';
+
+  const count = CHAKRA_ORDER.filter((ch) => visitEdit.spins[ch]).length;
+  document.getElementById('picker-progress').textContent = `${count} of 12 chakras set`;
+
+  renderSummaryBox();
+  renderBodyMap(document.getElementById('bodymap-container'), visitEdit.spins, state.currentClient?.sex, {
+    activeChakra: visitEdit.activeChakra,
+    onSelectChakra: selectChakra,
+  });
+}
+
+document.getElementById('btn-prev-chakra').addEventListener('click', () => {
+  const idx = CHAKRA_ORDER.indexOf(visitEdit.activeChakra);
+  selectChakra(CHAKRA_ORDER[(idx - 1 + CHAKRA_ORDER.length) % CHAKRA_ORDER.length]);
+});
+document.getElementById('btn-next-chakra').addEventListener('click', () => {
+  const idx = CHAKRA_ORDER.indexOf(visitEdit.activeChakra);
+  selectChakra(CHAKRA_ORDER[(idx + 1) % CHAKRA_ORDER.length]);
+});
+
 function resetVisitForm() {
-  document.getElementById('visit-id').value = '';
+  visitEdit.visitId = null;
+  visitEdit.spins = {};
+  visitEdit.diameters = {};
+  visitEdit.activeChakra = CHAKRA_ORDER[0];
   document.getElementById('visit-date').value = todayISO();
   document.getElementById('visit-notes').value = '';
-  buildChakraRows({}, {});
-  recomputeVisitSummary();
   document.getElementById('btn-delete-visit').hidden = true;
+  renderReadingUI();
 }
 
 function openVisitForEdit(visit) {
-  document.getElementById('visit-id').value = visit.id;
+  visitEdit.visitId = visit.id;
+  visitEdit.spins = { ...(visit.spins || {}) };
+  visitEdit.diameters = { ...(visit.diameters || {}) };
+  visitEdit.activeChakra = CHAKRA_ORDER[0];
   document.getElementById('visit-date').value = visit.date;
   document.getElementById('visit-notes').value = visit.notes || '';
-  buildChakraRows(visit.spins || {}, visit.diameters || {});
-  recomputeVisitSummary();
   document.getElementById('btn-delete-visit').hidden = false;
+  renderReadingUI();
   switchClientTab('reading');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 document.getElementById('form-visit').addEventListener('submit', (e) => {
   e.preventDefault();
-  const spins = readSpinsFromForm();
-  const totals = computeVisitTotals(spins);
+  const totals = computeVisitTotals(visitEdit.spins);
   if (!totals.complete) {
-    showToast('Select the notation for all 12 chakras before saving.', 'error');
+    showToast('Pick the spin shape for all 12 chakras before saving.', 'error');
     return;
   }
   const data = {
     date: document.getElementById('visit-date').value,
-    spins,
-    diameters: readDiametersFromForm(),
+    spins: visitEdit.spins,
+    diameters: visitEdit.diameters,
     notes: document.getElementById('visit-notes').value,
   };
-  const visitId = document.getElementById('visit-id').value;
   try {
-    if (visitId) {
-      VisitsAPI.updateVisit(state.currentClientId, visitId, data);
+    if (visitEdit.visitId) {
+      VisitsAPI.updateVisit(state.currentClientId, visitEdit.visitId, data);
     } else {
       VisitsAPI.createVisit(state.currentClientId, data);
     }
@@ -419,10 +456,9 @@ document.getElementById('form-visit').addEventListener('submit', (e) => {
 });
 
 document.getElementById('btn-delete-visit').addEventListener('click', () => {
-  const visitId = document.getElementById('visit-id').value;
-  if (!visitId) return;
+  if (!visitEdit.visitId) return;
   if (!confirmAction('Delete this reading?')) return;
-  VisitsAPI.deleteVisit(state.currentClientId, visitId);
+  VisitsAPI.deleteVisit(state.currentClientId, visitEdit.visitId);
   showToast('Reading deleted.', 'success');
   state.visits = VisitsAPI.listVisits(state.currentClientId);
   syncClientStats();
