@@ -2,7 +2,7 @@
 // the 4 evolution charts. Uses jsPDF (loaded via CDN in index.html as
 // window.jspdf.jsPDF). No server, no upload — the PDF is generated and
 // downloaded entirely in the browser.
-import { CHAKRA_ORDER, DOMAIN_LABELS, computeVisitTotals, weeksBetween } from './calculations.js';
+import { CHAKRA_ORDER, CHAKRA_LABELS, DOMAIN_LABELS, computeVisitTotals, weeksBetween } from './calculations.js';
 import { formatDate, formatNumber } from './ui.js';
 import { renderDomainChart, renderNeiChart, renderTndcChart, renderChakraChart } from './charts.js';
 
@@ -17,6 +17,30 @@ const MARGIN = 40;
 
 function safeFileName(name) {
   return name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_');
+}
+
+/** Compares the first reading to the most recent one, chakra by chakra. */
+export function computeEvolutionSummary(visits) {
+  const first = visits[0];
+  const last = visits[visits.length - 1];
+  const firstTotals = computeVisitTotals(first.spins);
+  const lastTotals = computeVisitTotals(last.spins);
+
+  const perChakra = CHAKRA_ORDER.map((chakra) => {
+    const firstVal = firstTotals.values[chakra] ?? 0;
+    const lastVal = lastTotals.values[chakra] ?? 0;
+    const delta = lastVal - firstVal;
+    const status = delta > 0.01 ? 'Improved' : delta < -0.01 ? 'Worsened' : 'Unchanged';
+    return { chakra, firstVal, lastVal, delta, status };
+  });
+
+  return {
+    firstDate: first.date,
+    lastDate: last.date,
+    perChakra,
+    neiDelta: lastTotals.nei - firstTotals.nei,
+    tndcDelta: lastTotals.tndc - firstTotals.tndc,
+  };
 }
 
 /**
@@ -201,6 +225,71 @@ export async function generateClientReportPDF(client, visits) {
       });
       y += 16;
     });
+  }
+
+  // ---------- Evolution summary (first reading vs. most recent) ----------
+  if (visits.length >= 2) {
+    const summary = computeEvolutionSummary(visits);
+
+    ensureSpace(40);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('Evolution Summary', MARGIN, y);
+    y += 18;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(90);
+    doc.text(
+      `Comparing the first reading (${formatDate(summary.firstDate)}) to the most recent (${formatDate(summary.lastDate)})`,
+      MARGIN, y
+    );
+    doc.setTextColor(20);
+    y += 20;
+
+    doc.setFontSize(11);
+    doc.text(`NEI change: ${summary.neiDelta >= 0 ? '+' : ''}${formatNumber(summary.neiDelta)} (higher is better)`, MARGIN, y);
+    y += 16;
+    doc.text(`TNDC change: ${summary.tndcDelta >= 0 ? '+' : ''}${summary.tndcDelta} (lower is better)`, MARGIN, y);
+    y += 22;
+
+    const evoColumns = [
+      { label: 'Chakra', width: 180 },
+      { label: 'First', width: 55 },
+      { label: 'Last', width: 55 },
+      { label: 'Change', width: 65 },
+      { label: 'Status', width: contentWidth - 180 - 55 - 55 - 65 },
+    ];
+
+    function drawEvoHeader() {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      let x = MARGIN;
+      for (const col of evoColumns) { doc.text(col.label, x, y); x += col.width; }
+      y += 6;
+      doc.setDrawColor(180);
+      doc.line(MARGIN, y, MARGIN + contentWidth, y);
+      y += 14;
+      doc.setFont('helvetica', 'normal');
+    }
+
+    drawEvoHeader();
+    for (const row of summary.perChakra) {
+      ensureSpace(16);
+      if (y === MARGIN) drawEvoHeader();
+      let x = MARGIN;
+      doc.setTextColor(20);
+      doc.text(CHAKRA_LABELS[row.chakra], x, y); x += evoColumns[0].width;
+      doc.text(formatNumber(row.firstVal), x, y); x += evoColumns[1].width;
+      doc.text(formatNumber(row.lastVal), x, y); x += evoColumns[2].width;
+      doc.text(`${row.delta >= 0 ? '+' : ''}${formatNumber(row.delta)}`, x, y); x += evoColumns[3].width;
+      const color = row.status === 'Improved' ? [46, 125, 50] : row.status === 'Worsened' ? [183, 28, 28] : [130, 130, 130];
+      doc.setTextColor(...color);
+      doc.text(row.status, x, y);
+      doc.setTextColor(20);
+      y += 16;
+    }
+    y += 16;
   }
 
   // ---------- Charts ----------

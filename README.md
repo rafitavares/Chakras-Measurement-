@@ -141,11 +141,18 @@ Depois disso, o app abre como um aplicativo normal, com ícone próprio.
    individual (a partir de 2 medições registradas).
 5. **Exportar (por cliente)** — na aba History de cada cliente, exporte o
    histórico dele em CSV ou JSON (para analisar numa planilha, por exemplo).
-6. **Generate PDF report** — na aba Client Info, gera e baixa um PDF com os
-   dados do cliente, a lista de datas de medição (com semanas entre
-   visitas, NEI, TNDC e domínio dominante de cada uma) e os 4 gráficos de
-   evolução (a partir de 2 medições registradas). Exige internet na hora de
-   gerar (carrega a biblioteca de PDF de um CDN na primeira vez).
+6. **Generate PDF report** — na aba Client Info, gera e baixa um PDF com:
+   - Dados do cliente;
+   - **Reading History**: data de cada medição, semanas desde a anterior,
+     NEI, TNDC e domínio dominante;
+   - **Evolution Summary** (a partir de 2 medições): compara a primeira
+     medição com a mais recente, chakra por chakra, dizendo se cada um
+     **Improved** (verde), **Worsened** (vermelho) ou **Unchanged**
+     (cinza), além da variação de NEI e TNDC no período;
+   - Por último, os **4 gráficos de evolução** (totais por domínio, NEI,
+     TNDC e por chakra) com todas as medições do cliente.
+   Exige internet na hora de gerar (carrega a biblioteca de PDF de um CDN
+   na primeira vez).
 7. **Backup (todos os clientes)** — no menu ⋮ da tela de clientes, exporte
    ou importe um backup completo, para levar os dados para outro aparelho.
 8. **Consent form** (termo de consentimento) — na aba Client Info, arraste
