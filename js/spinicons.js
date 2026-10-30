@@ -11,7 +11,7 @@ function svgEl(tag, attrs = {}) {
 }
 
 // Rotation angle (degrees) of the ellipse's long axis for each elliptical sub-type
-const ELLIPSE_ANGLE = { ER: 55, EL: -55, EV: 90, EH: 0, EAS: 20 };
+const ELLIPSE_ANGLE = { ER: 55, EL: -55, EV: 90, EH: 0 };
 
 /** A ~270° arc with an arrowhead, used to show clockwise/counterclockwise spin. */
 function spinArc(cx, cy, rx, ry, clockwise) {
@@ -38,6 +38,20 @@ function spinArc(cx, cy, rx, ry, clockwise) {
     d: `M ${end.x} ${end.y} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`,
     fill: 'currentColor',
   }));
+  return g;
+}
+
+/** "Askew" (EAS/CCEAS): a tangled, irregular double-loop instead of a
+ * clean ellipse, so it reads as visibly different from ER/EL/EV/EH. */
+function tangledIcon(clockwise) {
+  const g = svgEl('g');
+  g.appendChild(svgEl('path', {
+    d: 'M 8 21 C 6 14 12 8 19 9 C 27 10 28 18 21 20 C 15 22 10 17 15 13 C 20 9 27 13 25 19 C 23 25 13 26 9 20',
+    fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, opacity: 0.45, 'stroke-linecap': 'round',
+  }));
+  const arc = spinArc(17, 17, 10, 7, clockwise);
+  arc.setAttribute('opacity', '0.95');
+  g.appendChild(arc);
   return g;
 }
 
@@ -89,6 +103,12 @@ export function buildSpinIcon(code, { size = 36 } = {}) {
   }
 
   const suffix = code.replace('CC', '').replace('C', ''); // ER/EL/EV/EH/EAS
+
+  if (suffix === 'EAS') {
+    svg.appendChild(tangledIcon(clockwise));
+    return svg;
+  }
+
   const angle = ELLIPSE_ANGLE[suffix] ?? 0;
   const ellipse = svgEl('ellipse', {
     cx: 18, cy: 18, rx: 13, ry: 6.5, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, opacity: 0.35,
