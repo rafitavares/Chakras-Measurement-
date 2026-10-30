@@ -27,6 +27,7 @@ export function createClient(data) {
     email: data.email || null,
     phone: data.phone || null,
     complaint: data.complaint || null,
+    consentForm: null,
     lastVisitDate: null,
     visitCount: 0,
     createdAt: now,
@@ -66,5 +67,28 @@ export function updateClientStats(clientId, { lastVisitDate, visitCount }) {
   if (!client) return;
   client.lastVisitDate = lastVisitDate || null;
   client.visitCount = visitCount || 0;
+  store.saveDB(db);
+}
+
+/**
+ * Attaches (or replaces) the client's signed consent form. Stored inline as
+ * a data URL, so it travels with the rest of the client's data in backups.
+ * May throw (e.g. QuotaExceededError) if the file doesn't fit in
+ * localStorage — callers should catch and show a friendly message.
+ */
+export function setClientConsentForm(clientId, { name, dataUrl }) {
+  const db = store.loadDB();
+  const client = db.clients.find((c) => c.id === clientId);
+  if (!client) return;
+  client.consentForm = { name, dataUrl, uploadedAt: new Date().toISOString() };
+  store.saveDB(db);
+}
+
+/** Removes the client's attached consent form. */
+export function removeClientConsentForm(clientId) {
+  const db = store.loadDB();
+  const client = db.clients.find((c) => c.id === clientId);
+  if (!client) return;
+  client.consentForm = null;
   store.saveDB(db);
 }

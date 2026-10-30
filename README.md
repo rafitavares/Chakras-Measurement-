@@ -148,6 +148,14 @@ Depois disso, o app abre como um aplicativo normal, com ícone próprio.
    gerar (carrega a biblioteca de PDF de um CDN na primeira vez).
 7. **Backup (todos os clientes)** — no menu ⋮ da tela de clientes, exporte
    ou importe um backup completo, para levar os dados para outro aparelho.
+8. **Consent form** (termo de consentimento) — na aba Client Info, arraste
+   um PDF para a área indicada ou toque nela para escolher o arquivo do
+   aparelho. Limite de **3 MB por arquivo** (o navegador guarda tudo junto
+   com os outros dados, então arquivos grandes demais podem não caber).
+   Toque em **View** para abrir o PDF numa aba nova, ou **Remove** para
+   tirá-lo do cliente. Ele vai junto no **Exportar backup** (menu ⋮) e no
+   **Importar backup** de outro aparelho — não precisa reenviar o PDF à
+   parte.
 
 ### O método por trás dos números
 
@@ -207,6 +215,7 @@ localStorage["chakras_db_v1"] = {
   clients: [
     {
       id, name, birthdate, sex, email, phone, complaint,
+      consentForm: { name, dataUrl, uploadedAt } | null,
       lastVisitDate, visitCount, createdAt, updatedAt,
       visits: [
         { id, date, spins: { "7":"C", "6A":"CCEL", ... }, diameters: { "7": 8.5, ... }, notes, createdAt }
@@ -244,3 +253,8 @@ Pages não depende do Node em nenhum momento.
 - Limpar dados do navegador apaga o histórico se não houver backup exportado.
 - Não há "desfazer" para excluir cliente ou visita — a confirmação na hora é
   a única proteção.
+- Termos de consentimento (PDF) ficam guardados dentro do mesmo
+  armazenamento local do navegador, limitado a 3 MB por arquivo. Muitos
+  clientes com PDF anexado podem, juntos, esbarrar no limite de
+  armazenamento do navegador (tipicamente 5-10 MB no total) — se isso
+  acontecer, o app avisa que o arquivo não coube.

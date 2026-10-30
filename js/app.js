@@ -243,6 +243,7 @@ function renderClientDataTab() {
       el('dd', {}, complaintListElement(c.complaint)),
     ])
   );
+  renderConsentFormSection();
 }
 
 /** Renders the complaint text as a bullet list, one item per non-empty line. */
@@ -251,6 +252,111 @@ function complaintListElement(text) {
   if (!lines.length) return el('span', {}, '—');
   return el('ul', { class: 'complaint-list' }, lines.map((line) => el('li', {}, line)));
 }
+
+const MAX_CONSENT_FILE_BYTES = 3 * 1024 * 1024; // 3 MB — keeps room in localStorage for other clients
+
+function formatFileSize(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read the file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderConsentFormSection() {
+  const container = document.getElementById('consent-form-section');
+  container.innerHTML = '';
+  const form = state.currentClient.consentForm;
+
+  if (form) {
+    container.appendChild(
+      el('div', { class: 'consent-file' }, [
+        el('div', { class: 'consent-file__info' }, [
+          el('div', { class: 'consent-file__name' }, form.name),
+          el('div', { class: 'consent-file__meta' }, `Uploaded ${formatDate(form.uploadedAt.slice(0, 10))}`),
+        ]),
+        el('div', { class: 'consent-file__actions' }, [
+          el('button', { type: 'button', class: 'btn btn--secondary', onClick: viewConsentForm }, 'View'),
+          el('button', { type: 'button', class: 'btn btn--danger', onClick: removeConsentFormHandler }, 'Remove'),
+        ]),
+      ])
+    );
+    return;
+  }
+
+  const dz = el(
+    'div',
+    { class: 'dropzone', onClick: () => document.getElementById('input-consent-file').click() },
+    'Tap to choose a PDF, or drag & drop it here (max 3 MB)'
+  );
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dropzone--over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dropzone--over'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('dropzone--over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleConsentFile(file);
+  });
+  container.appendChild(dz);
+}
+
+/** Converts a base64 data URL back into a Blob (for object-URL viewing/downloading). */
+function dataUrlToBlob(dataUrl) {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+function viewConsentForm() {
+  if (!state.currentClient.consentForm) return;
+  // Browsers block window.open() straight to a data: URL; a blob: URL works.
+  const url = URL.createObjectURL(dataUrlToBlob(state.currentClient.consentForm.dataUrl));
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function removeConsentFormHandler() {
+  if (!confirmAction('Remove this consent form?')) return;
+  ClientsAPI.removeClientConsentForm(state.currentClientId);
+  state.currentClient = ClientsAPI.getClient(state.currentClientId);
+  renderConsentFormSection();
+  showToast('Consent form removed.', 'success');
+}
+
+async function handleConsentFile(file) {
+  if (file.type !== 'application/pdf') {
+    showToast('Please choose a PDF file.', 'error');
+    return;
+  }
+  if (file.size > MAX_CONSENT_FILE_BYTES) {
+    showToast(`File too large (${formatFileSize(file.size)}). Max is 3 MB.`, 'error');
+    return;
+  }
+  try {
+    const dataUrl = await readFileAsDataURL(file);
+    ClientsAPI.setClientConsentForm(state.currentClientId, { name: file.name, dataUrl });
+    state.currentClient = ClientsAPI.getClient(state.currentClientId);
+    renderConsentFormSection();
+    showToast('Consent form attached.', 'success');
+  } catch (err) {
+    showToast('Error saving the consent form (it may be too large for this device).', 'error');
+  }
+}
+
+document.getElementById('input-consent-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) handleConsentFile(file);
+});
 
 document.getElementById('btn-edit-client').addEventListener('click', () => {
   openClientForm(state.currentClient, 'info');
