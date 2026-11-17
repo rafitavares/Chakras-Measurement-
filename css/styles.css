@@ -243,29 +243,49 @@ input:focus, textarea:focus, select:focus {
 }
 .icon-btn-sm:active { background: #ddd9f7; }
 
-.picker-icons {
-  display: flex;
-  flex-wrap: wrap;
+.picker-icons { display: flex; flex-direction: column; gap: 12px; }
+.picker-group__label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.picker-group--cw .picker-group__label { color: #2e7d32; }
+.picker-group--ccw .picker-group__label { color: #b71c1c; }
+.picker-group--line .picker-group__label,
+.picker-group--still .picker-group__label { color: var(--color-muted); }
+.picker-icons__row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
-  justify-content: center;
 }
 .picker-icon-btn {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
+  min-height: 92px;
+  padding: 6px 2px;
+  border-radius: 12px;
   border: 2px solid var(--color-border);
   background: #fff;
   color: var(--color-muted);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
 }
+.picker-icon-btn .spin-icon { width: 46px; height: 46px; max-width: 100%; }
+.picker-icon-btn--cw { color: #2e7d32; }
+.picker-icon-btn--ccw { color: #b71c1c; }
+.picker-icon-btn--line, .picker-icon-btn--still { color: #4a4860; }
+.picker-icon-btn__code { font-size: 0.72rem; font-weight: 800; }
+.picker-icon-btn__name { font-size: 0.66rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .picker-icon-btn:active { background: #f1f0fb; }
 .picker-icon-btn--selected {
   border-color: var(--color-primary);
-  color: var(--color-primary-dark);
+  border-width: 3px;
   background: #eceafb;
+  box-shadow: 0 0 0 3px #ffb74d;
 }
 
 .picker-diameter {
@@ -284,10 +304,14 @@ input:focus, textarea:focus, select:focus {
   gap: 6px;
 }
 .picker-diameter-chip {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 8px;
-  border-radius: 17px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  min-height: 50px;
+  padding: 4px 10px;
+  border-radius: 14px;
   border: 2px solid var(--color-border);
   background: #fff;
   color: var(--color-muted);
@@ -295,6 +319,10 @@ input:focus, textarea:focus, select:focus {
   font-weight: 700;
 }
 .picker-diameter-chip:active { background: #f1f0fb; }
+.picker-diameter-chip__cm { font-size: 0.92rem; }
+.picker-diameter-chip__in { font-size: 0.7rem; font-weight: 600; opacity: 0.8; }
+.picker-diameter-chip--legacy { border-style: dashed; }
+.summary-diameters { margin-top: 4px; }
 .picker-diameter-chip--selected {
   border-color: var(--color-primary);
   color: var(--color-primary-dark);
@@ -315,10 +343,8 @@ input:focus, textarea:focus, select:focus {
   font-size: 0.78rem;
 }
 
-@media (min-width: 640px) {
-  .reading-layout { flex-direction: row; align-items: flex-start; }
-  .reading-layout__image { width: 420px; }
-}
+/* Body map on top (large), spin + diameter picker below it */
+.reading-layout__image { width: 100%; }
 
 .summary-box {
   background: #f7f6ff;
@@ -370,7 +396,7 @@ input:focus, textarea:focus, select:focus {
 
 .bodymap-svg {
   width: 100%;
-  max-width: 460px;
+  max-width: 520px;
   height: auto;
   display: block;
   margin: 0 auto;

@@ -13,31 +13,48 @@ function svgEl(tag, attrs = {}) {
 // Rotation angle (degrees) of the ellipse's long axis for each elliptical sub-type
 const ELLIPSE_ANGLE = { ER: 55, EL: -55, EV: 90, EH: 0 };
 
-/** A ~270° arc with an arrowhead, used to show clockwise/counterclockwise spin. */
+function arrowHead(tipX, tipY, tangentDeg, size) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const t = toRad(tangentDeg);
+  const back = { x: tipX - size * Math.cos(t), y: tipY - size * Math.sin(t) };
+  const perp = toRad(tangentDeg + 90);
+  const w = size * 0.45;
+  const p1 = { x: back.x + w * Math.cos(perp), y: back.y + w * Math.sin(perp) };
+  const p2 = { x: back.x - w * Math.cos(perp), y: back.y - w * Math.sin(perp) };
+  return svgEl('path', {
+    d: `M ${tipX} ${tipY} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`,
+    fill: 'currentColor', stroke: 'currentColor', 'stroke-width': 0.8, 'stroke-linejoin': 'round',
+  });
+}
+
+/**
+ * A ~250° arc ending in one large arrowhead, used to show
+ * clockwise/counterclockwise spin, readable at a glance on a small screen.
+ */
 function spinArc(cx, cy, rx, ry, clockwise) {
   const g = svgEl('g');
   const startDeg = clockwise ? -100 : 100;
-  const endDeg = clockwise ? 170 : -170;
+  const endDeg = clockwise ? 150 : -150;
   const toRad = (d) => (d * Math.PI) / 180;
-  const start = { x: cx + rx * Math.cos(toRad(startDeg)), y: cy + ry * Math.sin(toRad(startDeg)) };
-  const end = { x: cx + rx * Math.cos(toRad(endDeg)), y: cy + ry * Math.sin(toRad(endDeg)) };
+  const pt = (deg) => ({ x: cx + rx * Math.cos(toRad(deg)), y: cy + ry * Math.sin(toRad(deg)) });
+  const start = pt(startDeg);
+  const end = pt(endDeg);
   const sweepFlag = clockwise ? 1 : 0;
   g.appendChild(svgEl('path', {
     d: `M ${start.x} ${start.y} A ${rx} ${ry} 0 1 ${sweepFlag} ${end.x} ${end.y}`,
-    fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round',
+    fill: 'none', stroke: 'currentColor', 'stroke-width': 2.6, 'stroke-linecap': 'round',
   }));
-  // arrowhead at the end point, tangent to the arc direction
-  const tangentDeg = endDeg + (clockwise ? 90 : -90);
-  const t = toRad(tangentDeg);
-  const ah = 4.2;
-  const back = { x: end.x - ah * Math.cos(t), y: end.y - ah * Math.sin(t) };
-  const perp = toRad(tangentDeg + 90);
-  const p1 = { x: back.x + ah * 0.55 * Math.cos(perp), y: back.y + ah * 0.55 * Math.sin(perp) };
-  const p2 = { x: back.x - ah * 0.55 * Math.cos(perp), y: back.y - ah * 0.55 * Math.sin(perp) };
-  g.appendChild(svgEl('path', {
-    d: `M ${end.x} ${end.y} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`,
-    fill: 'currentColor',
-  }));
+  // tangent direction of the ellipse at a given angle, in the travel direction
+  const tangent = (deg) => {
+    const dx = -rx * Math.sin(toRad(deg));
+    const dy = ry * Math.cos(toRad(deg));
+    const a = (Math.atan2(dy, dx) * 180) / Math.PI;
+    return clockwise ? a : a + 180;
+  };
+  // one large arrowhead whose base sits exactly on the end of the arc
+  const dir = (tangent(endDeg) * Math.PI) / 180;
+  const size = 8.5;
+  g.appendChild(arrowHead(end.x + size * Math.cos(dir), end.y + size * Math.sin(dir), tangent(endDeg), size));
   return g;
 }
 
@@ -47,9 +64,9 @@ function tangledIcon(clockwise) {
   const g = svgEl('g');
   g.appendChild(svgEl('path', {
     d: 'M 8 21 C 6 14 12 8 19 9 C 27 10 28 18 21 20 C 15 22 10 17 15 13 C 20 9 27 13 25 19 C 23 25 13 26 9 20',
-    fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, opacity: 0.45, 'stroke-linecap': 'round',
+    fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, opacity: 0.35, 'stroke-linecap': 'round',
   }));
-  const arc = spinArc(17, 17, 10, 7, clockwise);
+  const arc = spinArc(18, 17, 11, 8, clockwise);
   arc.setAttribute('opacity', '0.95');
   g.appendChild(arc);
   return g;
@@ -62,7 +79,7 @@ function straightLineIcon(angleDeg) {
   const dx = len * Math.cos(rad), dy = len * Math.sin(rad);
   g.appendChild(svgEl('line', {
     x1: cx - dx, y1: cy - dy, x2: cx + dx, y2: cy + dy,
-    stroke: 'currentColor', 'stroke-width': 2.4, 'stroke-linecap': 'round',
+    stroke: 'currentColor', 'stroke-width': 3, 'stroke-linecap': 'round',
   }));
   // small end ticks to read as "oscillates back and forth", not rotational
   for (const sign of [1, -1]) {
@@ -85,7 +102,7 @@ export function buildSpinIcon(code, { size = 36 } = {}) {
   const svg = svgEl('svg', { viewBox: '0 0 36 36', width: size, height: size, class: 'spin-icon' });
 
   if (code === 'S') {
-    svg.appendChild(svgEl('circle', { cx: 18, cy: 18, r: 3.2, fill: 'currentColor' }));
+    svg.appendChild(svgEl('circle', { cx: 18, cy: 18, r: 4.5, fill: 'currentColor' }));
     return svg;
   }
   if (code === 'V') { svg.appendChild(straightLineIcon(90)); return svg; }
@@ -97,8 +114,8 @@ export function buildSpinIcon(code, { size = 36 } = {}) {
   const isRound = code === 'C' || code === 'CC';
 
   if (isRound) {
-    svg.appendChild(svgEl('circle', { cx: 18, cy: 18, r: 11, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, opacity: 0.35 }));
-    svg.appendChild(spinArc(18, 18, 11, 11, clockwise));
+    svg.appendChild(svgEl('circle', { cx: 18, cy: 18, r: 12, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.4, opacity: 0.25 }));
+    svg.appendChild(spinArc(18, 18, 12, 12, clockwise));
     return svg;
   }
 
@@ -111,11 +128,11 @@ export function buildSpinIcon(code, { size = 36 } = {}) {
 
   const angle = ELLIPSE_ANGLE[suffix] ?? 0;
   const ellipse = svgEl('ellipse', {
-    cx: 18, cy: 18, rx: 13, ry: 6.5, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, opacity: 0.35,
+    cx: 18, cy: 18, rx: 14, ry: 7.5, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.4, opacity: 0.25,
     transform: `rotate(${angle} 18 18)`,
   });
   svg.appendChild(ellipse);
-  const arcGroup = spinArc(18, 18, 13, 6.5, clockwise);
+  const arcGroup = spinArc(18, 18, 14, 7.5, clockwise);
   arcGroup.setAttribute('transform', `rotate(${angle} 18 18)`);
   svg.appendChild(arcGroup);
   return svg;

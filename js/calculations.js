@@ -140,3 +140,29 @@ export function weeksBetween(isoDateEarlier, isoDateLater) {
   const diffMs = b.getTime() - a.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
 }
+
+// Pendulum diameters offered in the picker. Stored in cm (same unit as all
+// earlier readings, so nothing saved before needs converting); shown to the
+// client in inches using the nominal pendulum sizes.
+export const DIAMETER_OPTIONS = Object.freeze([
+  { cm: 5, inches: 2 },
+  { cm: 7.5, inches: 3 },
+  { cm: 10, inches: 4 },
+  { cm: 12.5, inches: 5 },
+  { cm: 15, inches: 6 },
+  { cm: 20, inches: 8 },
+]);
+
+/** Inches for a stored cm value: nominal size if it's one of the options, otherwise cm ÷ 2.54 (1 decimal). */
+export function cmToInches(cm) {
+  if (cm === undefined || cm === null || cm === '') return null;
+  const n = Number(cm);
+  const opt = DIAMETER_OPTIONS.find((o) => o.cm === n);
+  if (opt) return opt.inches;
+  return Math.round((n / 2.54) * 10) / 10;
+}
+
+export function formatDiameterInches(cm) {
+  const inches = cmToInches(cm);
+  return inches === null ? '—' : `${inches} in`;
+}

@@ -9,6 +9,9 @@ import {
   DOMAIN_LABELS,
   computeVisitTotals,
   weeksBetween,
+  DIAMETER_OPTIONS,
+  cmToInches,
+  formatDiameterInches,
 } from './calculations.js';
 import { CHAKRA_COLORS, renderDomainChart, renderNeiChart, renderTndcChart, renderChakraChart } from './charts.js';
 import { exportClientCSV, exportClientJSON } from './export.js';
@@ -19,14 +22,20 @@ import { requestAdminUnlock } from './auth.js';
 import { showToast, confirmAction, formatDate, formatDateTime, formatNumber, el } from './ui.js';
 
 const SPIN_LABEL_BY_CODE = Object.fromEntries(SPIN_OPTIONS.map((o) => [o.code, o.label]));
+// Picker rows: one row per direction, so clockwise vs counterclockwise is
+// decided by the row (and its color) before even looking at the arrow.
 const SPIN_GROUPS = [
-  { label: 'Clockwise Round', codes: ['C'] },
-  { label: 'Clockwise Elliptical', codes: ['CER', 'CEL', 'CEV', 'CEH', 'CEAS'] },
-  { label: 'Straight Line', codes: ['V', 'H', 'R', 'L'] },
-  { label: 'Counterclockwise Elliptical', codes: ['CCER', 'CCEL', 'CCEV', 'CCEH', 'CCEAS'] },
-  { label: 'Counterclockwise Round', codes: ['CC'] },
-  { label: 'Still', codes: ['S'] },
+  { key: 'cw', label: 'Clockwise ↻', codes: ['C', 'CER', 'CEL', 'CEV', 'CEH', 'CEAS'] },
+  { key: 'ccw', label: 'Counterclockwise ↺', codes: ['CC', 'CCER', 'CCEL', 'CCEV', 'CCEH', 'CCEAS'] },
+  { key: 'line', label: 'Straight line', codes: ['V', 'H', 'R', 'L'] },
+  { key: 'still', label: 'Still', codes: ['S'] },
 ];
+// Short caption under each icon (the full name is in the tooltip)
+const SPIN_SHORT = {
+  C: 'Round', CER: 'Right', CEL: 'Left', CEV: 'Vertical', CEH: 'Horiz.', CEAS: 'Askew',
+  CC: 'Round', CCER: 'Right', CCEL: 'Left', CCEV: 'Vertical', CCEH: 'Horiz.', CCEAS: 'Askew',
+  V: 'Vertical', H: 'Horiz.', R: 'Right', L: 'Left', S: 'Still',
+};
 
 const state = {
   clients: [],
@@ -400,7 +409,6 @@ document.getElementById('btn-pdf-report').addEventListener('click', async (e) =>
 // in-progress reading; it is plain in-memory state, never touching
 // localStorage until "Save reading" is pressed (so nothing here can lose
 // already-saved data).
-const DIAMETER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20];
 
 const visitEdit = {
   visitId: null,
@@ -438,18 +446,25 @@ function buildIconPicker() {
   container.innerHTML = '';
   const current = visitEdit.spins[visitEdit.activeChakra];
   for (const group of SPIN_GROUPS) {
+    const row = el('div', { class: 'picker-icons__row' });
     for (const code of group.codes) {
       const selected = current === code;
       const btn = el('button', {
         type: 'button',
-        class: `picker-icon-btn${selected ? ' picker-icon-btn--selected' : ''}`,
+        class: `picker-icon-btn picker-icon-btn--${group.key}${selected ? ' picker-icon-btn--selected' : ''}`,
         title: SPIN_LABEL_BY_CODE[code],
         'aria-label': SPIN_LABEL_BY_CODE[code],
         onClick: () => setSpin(visitEdit.activeChakra, code),
       });
-      btn.appendChild(buildSpinIcon(code, { size: 30 }));
-      container.appendChild(btn);
+      btn.appendChild(buildSpinIcon(code, { size: 46 }));
+      btn.appendChild(el('span', { class: 'picker-icon-btn__code' }, code));
+      btn.appendChild(el('span', { class: 'picker-icon-btn__name' }, SPIN_SHORT[code]));
+      row.appendChild(btn);
     }
+    container.appendChild(el('div', { class: `picker-group picker-group--${group.key}` }, [
+      el('div', { class: 'picker-group__label' }, group.label),
+      row,
+    ]));
   }
 }
 
@@ -462,12 +477,19 @@ function buildDiameterPicker() {
     class: `picker-diameter-chip${current === undefined ? ' picker-diameter-chip--selected' : ''}`,
     onClick: () => setDiameter(visitEdit.activeChakra, undefined),
   }, '—'));
-  for (const d of DIAMETER_OPTIONS) {
-    container.appendChild(el('button', {
-      type: 'button',
-      class: `picker-diameter-chip${current === d ? ' picker-diameter-chip--selected' : ''}`,
-      onClick: () => setDiameter(visitEdit.activeChakra, d),
-    }, String(d)));
+  const chip = (cm, inchesText, extraClass = '') => el('button', {
+    type: 'button',
+    class: `picker-diameter-chip${current === cm ? ' picker-diameter-chip--selected' : ''}${extraClass}`,
+    onClick: () => setDiameter(visitEdit.activeChakra, cm),
+  }, [
+    el('span', { class: 'picker-diameter-chip__cm' }, `${String(cm).replace('.', ',')} cm`),
+    el('span', { class: 'picker-diameter-chip__in' }, inchesText),
+  ]);
+  for (const d of DIAMETER_OPTIONS) container.appendChild(chip(d.cm, `${d.inches} in`));
+  // a value saved by an older version (e.g. 12 cm) stays visible and selected
+  // until a new size is picked — it is never changed automatically
+  if (current !== undefined && !DIAMETER_OPTIONS.some((d) => d.cm === current)) {
+    container.appendChild(chip(current, `${cmToInches(current)} in · older value`, ' picker-diameter-chip--legacy'));
   }
 }
 
@@ -488,6 +510,13 @@ function renderSummaryBox() {
   if (secondaryText) box.appendChild(el('div', {}, `Secondary: ${secondaryText}`));
   box.appendChild(el('div', {}, [el('strong', {}, 'NEI: '), `${formatNumber(result.nei)} (reference: −12 to +12)`]));
   box.appendChild(el('div', {}, [el('strong', {}, 'TNDC: '), `${result.tndc} of 12`]));
+  const withDia = CHAKRA_ORDER.filter((ch) => visitEdit.diameters[ch] !== undefined);
+  if (withDia.length) {
+    box.appendChild(el('div', { class: 'summary-diameters' }, [
+      el('strong', {}, 'Diameters: '),
+      withDia.map((ch) => `${ch}: ${formatDiameterInches(visitEdit.diameters[ch])}`).join(' · '),
+    ]));
+  }
   if (!result.complete) {
     box.appendChild(el('div', { class: 'muted' }, 'Pick a shape for all 12 chakras to save the reading.'));
   }
@@ -501,7 +530,7 @@ function renderReadingUI() {
   const code = visitEdit.spins[visitEdit.activeChakra];
   const dia = visitEdit.diameters[visitEdit.activeChakra];
   document.getElementById('picker-preview').textContent = code
-    ? (dia !== undefined ? `${code} · ${dia} cm` : code)
+    ? (dia !== undefined ? `${code} · ${formatDiameterInches(dia)}` : code)
     : 'Not set yet';
 
   const count = CHAKRA_ORDER.filter((ch) => visitEdit.spins[ch]).length;

@@ -1,4 +1,4 @@
-import { CHAKRA_ORDER, computeVisitTotals } from './calculations.js';
+import { CHAKRA_ORDER, computeVisitTotals, cmToInches } from './calculations.js';
 
 function downloadBlob(filename, content, mime) {
   const blob = new Blob([content], { type: mime });
@@ -28,6 +28,7 @@ export function exportClientJSON(client, visits) {
         locked: !!v.locked,
         spins: v.spins,
         diameters: v.diameters || {},
+        diametersInches: Object.fromEntries(Object.entries(v.diameters || {}).map(([c, cm]) => [c, cmToInches(cm)])),
         notes: v.notes || '',
         totals: totals.totals,
         nei: totals.nei,
@@ -40,7 +41,7 @@ export function exportClientJSON(client, visits) {
 }
 
 export function exportClientCSV(client, visits) {
-  const header = ['date', 'phase', 'saved_at', 'locked', ...CHAKRA_ORDER.map((c) => `spin_${c}`), ...CHAKRA_ORDER.map((c) => `diameter_${c}`), 'REASON', 'EMOTION', 'WILL', 'NEI', 'TNDC', 'dominant', 'notes'];
+  const header = ['date', 'phase', 'saved_at', 'locked', ...CHAKRA_ORDER.map((c) => `spin_${c}`), ...CHAKRA_ORDER.map((c) => `diameter_cm_${c}`), ...CHAKRA_ORDER.map((c) => `diameter_in_${c}`), 'REASON', 'EMOTION', 'WILL', 'NEI', 'TNDC', 'dominant', 'notes'];
   const rows = visits.map((v) => {
     const t = computeVisitTotals(v.spins);
     const cells = [
@@ -50,6 +51,7 @@ export function exportClientCSV(client, visits) {
       v.locked ? 'yes' : 'no',
       ...CHAKRA_ORDER.map((c) => v.spins?.[c] || ''),
       ...CHAKRA_ORDER.map((c) => (v.diameters?.[c] ?? '')),
+      ...CHAKRA_ORDER.map((c) => (cmToInches(v.diameters?.[c]) ?? '')),
       t.totals.REASON,
       t.totals.EMOTION,
       t.totals.WILL,

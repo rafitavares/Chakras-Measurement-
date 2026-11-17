@@ -1,7 +1,7 @@
 // Simple service worker: caches the app "shell" (HTML/CSS/JS/icons) for
 // PWA installation and faster/offline opening. Network-first strategy with
 // cache fallback, so it never gets stuck on an old version while online.
-const CACHE_NAME = 'chakras-shell-v7';
+const CACHE_NAME = 'chakras-shell-v8';
 const APP_SHELL = [
   './',
   './index.html',
