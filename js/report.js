@@ -182,11 +182,11 @@ export async function generateClientReportPDF(client, visits) {
   y += 18;
 
   const columns = [
-    { label: 'Date', width: 80 },
+    { label: 'Date', width: 110 },
     { label: 'Weeks since prev.', width: 100 },
     { label: 'NEI', width: 60 },
     { label: 'TNDC', width: 50 },
-    { label: 'Dominant domain', width: contentWidth - 80 - 100 - 60 - 50 },
+    { label: 'Dominant domain', width: contentWidth - 110 - 100 - 60 - 50 },
   ];
 
   function drawTableHeader() {
@@ -215,10 +215,11 @@ export async function generateClientReportPDF(client, visits) {
       ensureSpace(16);
       if (y === MARGIN) drawTableHeader(); // redraw header after a page break
       const totals = computeVisitTotals(visit.spins);
-      const weeks = idx > 0 ? `${weeksBetween(visits[idx - 1].date, visit.date)}` : '—';
+      const weeks = idx > 0 && visits[idx - 1].date !== visit.date ? `${weeksBetween(visits[idx - 1].date, visit.date)}` : '—';
       const dominant = totals.dominant.map((d) => DOMAIN_LABELS[d]).join(' + ');
       let x = MARGIN;
-      const row = [formatDate(visit.date), weeks, formatNumber(totals.nei), String(totals.tndc), dominant];
+      const phaseTag = visit.phase === 'before' ? ' (before)' : visit.phase === 'after' ? ' (after)' : '';
+      const row = [formatDate(visit.date) + phaseTag, weeks, formatNumber(totals.nei), String(totals.tndc), dominant];
       row.forEach((cell, i) => {
         doc.text(cell, x, y);
         x += columns[i].width;

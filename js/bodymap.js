@@ -150,7 +150,12 @@ export function renderBodyMap(container, spins = {}, sex = null, opts = {}) {
     href: src, x: 0, y: 0, width, height, preserveAspectRatio: 'xMidYMid meet', 'pointer-events': 'none',
   }));
 
-  for (const chakra of CHAKRA_ORDER) {
+  // Draw the active chakra last so its highlight sits on top of the others.
+  const drawOrder = CHAKRA_ORDER.filter((c) => c !== activeChakra);
+  if (activeChakra && CHAKRA_ORDER.includes(activeChakra)) drawOrder.push(activeChakra);
+  const hasActive = !!activeChakra;
+
+  for (const chakra of drawOrder) {
     const pos = layout[chakra];
     const px = (pos.xPct / 100) * width;
     const py = (pos.yPct / 100) * height;
@@ -158,7 +163,7 @@ export function renderBodyMap(container, spins = {}, sex = null, opts = {}) {
     const color = colorForSpin(notation);
     const isActive = chakra === activeChakra;
 
-    const group = svgEl('g', { class: `bodymap-point${isActive ? ' bodymap-point--active' : ''}` });
+    const group = svgEl('g', { class: `bodymap-point${isActive ? ' bodymap-point--active' : ''}${hasActive && !isActive ? ' bodymap-point--dim' : ''}` });
     if (onSelectChakra) {
       group.setAttribute('tabindex', '0');
       group.setAttribute('role', 'button');
@@ -172,50 +177,80 @@ export function renderBodyMap(container, spins = {}, sex = null, opts = {}) {
     // invisible larger hit-area so small cones stay easy to tap on mobile
     group.appendChild(svgEl('circle', { cx: px, cy: py, r: width * 0.075, fill: '#000', 'fill-opacity': '0', 'pointer-events': 'all' }));
 
-    group.appendChild(coneShape(px, py, pos.dir, width, color));
-
-    if (isActive) {
-      group.appendChild(svgEl('circle', {
-        cx: px, cy: py, r: width * 0.028, fill: 'none', stroke: '#2c2a3a', 'stroke-width': width * 0.006,
-      }));
-    }
-
-    const dot = svgEl('circle', {
-      cx: px, cy: py, r: width * 0.016, fill: color, stroke: '#ffffff', 'stroke-width': width * 0.004,
-    });
-    const title = svgEl('title');
-    title.textContent = `${chakra}: ${notation || 'not set'}`;
-    dot.appendChild(title);
-    group.appendChild(dot);
-
-    // leader line + label, out in the margin so it never sits over the photo
+    // leader line + label position, out in the margin so it never sits over the photo
     const labelPy = pos.labelYPct !== undefined ? (pos.labelYPct / 100) * height : py;
     let labelX, labelY, anchor, lineToX, lineToY;
     if (pos.labelSide === 'right') {
       lineToX = width; lineToY = labelPy;
-      labelX = width + marginX * 0.55; labelY = labelPy;
-      anchor = 'start';
+      labelX = width + marginX * 0.5; labelY = labelPy;
+      anchor = 'middle';
     } else if (pos.labelSide === 'left') {
       lineToX = 0; lineToY = labelPy;
-      labelX = -marginX * 0.55; labelY = labelPy;
-      anchor = 'end';
+      labelX = -marginX * 0.5; labelY = labelPy;
+      anchor = 'middle';
     } else {
       lineToX = px; lineToY = 0;
       labelX = px; labelY = -marginTop * 0.45;
       anchor = 'middle';
     }
 
+    // big invisible tap target around the margin label (the label is the
+    // easiest thing to hit precisely, so make the whole margin cell tappable)
+    const hitW = marginX * 0.9;
+    const hitH = width * 0.085;
+    group.appendChild(svgEl('rect', {
+      x: labelX - hitW / 2, y: labelY - hitH / 2, width: hitW, height: hitH,
+      fill: '#000', 'fill-opacity': '0', 'pointer-events': 'all',
+    }));
+
+    if (isActive) {
+      // soft glowing halo + pulsing ring
+      group.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: width * 0.07, fill: '#ffd54f', 'fill-opacity': '0.35', class: 'bodymap-halo',
+      }));
+      group.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: width * 0.05, fill: 'none', stroke: '#ff8f00', 'stroke-width': width * 0.009, class: 'bodymap-pulse',
+      }));
+    }
+
+    group.appendChild(coneShape(px, py, pos.dir, width, color));
+
+    if (isActive) {
+      group.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: width * 0.03, fill: 'none', stroke: '#2c2a3a', 'stroke-width': width * 0.008,
+      }));
+    }
+
+    const dot = svgEl('circle', {
+      cx: px, cy: py, r: width * (isActive ? 0.022 : 0.016), fill: color, stroke: '#ffffff', 'stroke-width': width * 0.005,
+    });
+    const title = svgEl('title');
+    title.textContent = `${chakra}: ${notation || 'not set'}`;
+    dot.appendChild(title);
+    group.appendChild(dot);
+
     group.appendChild(svgEl('line', {
       x1: px, y1: py, x2: lineToX, y2: lineToY,
-      stroke: isActive ? '#5b6fd6' : '#8a86ad', 'stroke-width': width * (isActive ? 0.004 : 0.0025),
+      stroke: isActive ? '#ff8f00' : '#8a86ad', 'stroke-width': width * (isActive ? 0.007 : 0.0025),
       'stroke-dasharray': isActive ? '' : `${width * 0.006} ${width * 0.006}`,
     }));
+
+    if (isActive) {
+      // filled "pill" behind the active label
+      const pillW = width * 0.13;
+      const pillH = width * 0.075;
+      group.appendChild(svgEl('rect', {
+        x: labelX - pillW / 2, y: labelY - pillH / 2, width: pillW, height: pillH,
+        rx: pillH / 2, fill: '#5b6fd6', stroke: '#ff8f00', 'stroke-width': width * 0.006,
+      }));
+    }
+
     const label = svgEl('text', {
       x: labelX, y: labelY, 'text-anchor': anchor,
       class: `bodymap-label${isActive ? ' bodymap-label--active' : ''}`,
-      'font-size': width * (isActive ? 0.05 : 0.042),
+      'font-size': width * (isActive ? 0.055 : 0.046),
     });
-    label.setAttribute('dominant-baseline', 'middle');
+    label.setAttribute('dominant-baseline', 'central');
     label.textContent = chakra;
     group.appendChild(label);
 

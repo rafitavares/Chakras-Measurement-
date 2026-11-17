@@ -23,6 +23,9 @@ export function exportClientJSON(client, visits) {
       const totals = computeVisitTotals(v.spins);
       return {
         date: v.date,
+        phase: v.phase || null,
+        savedAt: v.savedAt || v.createdAt || null,
+        locked: !!v.locked,
         spins: v.spins,
         diameters: v.diameters || {},
         notes: v.notes || '',
@@ -37,11 +40,14 @@ export function exportClientJSON(client, visits) {
 }
 
 export function exportClientCSV(client, visits) {
-  const header = ['date', ...CHAKRA_ORDER.map((c) => `spin_${c}`), ...CHAKRA_ORDER.map((c) => `diameter_${c}`), 'REASON', 'EMOTION', 'WILL', 'NEI', 'TNDC', 'dominant', 'notes'];
+  const header = ['date', 'phase', 'saved_at', 'locked', ...CHAKRA_ORDER.map((c) => `spin_${c}`), ...CHAKRA_ORDER.map((c) => `diameter_${c}`), 'REASON', 'EMOTION', 'WILL', 'NEI', 'TNDC', 'dominant', 'notes'];
   const rows = visits.map((v) => {
     const t = computeVisitTotals(v.spins);
     const cells = [
       v.date,
+      v.phase || '',
+      v.savedAt || v.createdAt || '',
+      v.locked ? 'yes' : 'no',
       ...CHAKRA_ORDER.map((c) => v.spins?.[c] || ''),
       ...CHAKRA_ORDER.map((c) => (v.diameters?.[c] ?? '')),
       t.totals.REASON,

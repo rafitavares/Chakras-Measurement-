@@ -317,7 +317,7 @@ input:focus, textarea:focus, select:focus {
 
 @media (min-width: 640px) {
   .reading-layout { flex-direction: row; align-items: flex-start; }
-  .reading-layout__image { width: 280px; }
+  .reading-layout__image { width: 420px; }
 }
 
 .summary-box {
@@ -370,7 +370,7 @@ input:focus, textarea:focus, select:focus {
 
 .bodymap-svg {
   width: 100%;
-  max-width: 320px;
+  max-width: 460px;
   height: auto;
   display: block;
   margin: 0 auto;
@@ -379,7 +379,21 @@ input:focus, textarea:focus, select:focus {
   font-weight: 700;
   fill: #2c2a3a;
 }
-.bodymap-label--active { fill: #5b6fd6; }
+.bodymap-label--active { fill: #ffffff; }
+.bodymap-point--dim { opacity: 0.55; }
+.bodymap-point--dim:hover { opacity: 0.9; }
+.bodymap-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bodymap-pulse 1.4s ease-in-out infinite;
+}
+@keyframes bodymap-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bodymap-pulse { animation: none; }
+}
 .bodymap-point { cursor: pointer; }
 .bodymap-point:focus { outline: none; }
 .bodymap-point:focus .bodymap-label { fill: #5b6fd6; }
@@ -444,3 +458,83 @@ input:focus, textarea:focus, select:focus {
 }
 .consent-file__meta { font-size: 0.78rem; color: var(--color-muted); }
 .consent-file__actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ---------- Active chakra label in the picker ---------- */
+.picker-chakra-label {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 20px;
+  padding: 8px 10px;
+  font-size: 1.05rem;
+  box-shadow: 0 0 0 3px #ffb74d;
+}
+
+/* ---------- Before / after treatment ---------- */
+.visit-fields { border: none; margin: 0; padding: 0; min-width: 0; }
+.phase-field { margin-bottom: 14px; }
+.phase-field__label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--color-muted); margin-bottom: 6px; }
+.phase-toggle { display: flex; gap: 8px; }
+.phase-option { flex: 1; margin: 0; cursor: pointer; }
+.phase-option input { position: absolute; opacity: 0; pointer-events: none; }
+.phase-option span {
+  display: block;
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--color-border);
+  background: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+.phase-option--before input:checked + span { border-color: #b5651d; background: #fdeee0; color: #b5651d; }
+.phase-option--after input:checked + span { border-color: #2f7a53; background: #e6f4ec; color: #2f7a53; }
+.phase-option input:focus-visible + span { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.phase-option input:disabled + span { cursor: not-allowed; }
+.badge--phase-before { background: #fdeee0; color: #b5651d; }
+.badge--phase-after { background: #e6f4ec; color: #2f7a53; }
+
+/* ---------- Lock ---------- */
+.lock-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: #f1f0fb;
+  border: 2px solid var(--color-border);
+}
+.lock-bar--locked { background: #fff6e5; border-color: #ffb74d; }
+.lock-bar__info { flex: 1; min-width: 0; }
+.lock-bar__saved { font-weight: 700; font-size: 0.9rem; }
+.lock-bar__status { font-size: 0.8rem; color: var(--color-muted); margin-top: 2px; }
+.lock-btn {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.lock-bar--locked .lock-btn, .lock-btn--locked { border-color: #ffb74d; background: #fff6e5; }
+.lock-btn--sm { width: 42px; height: 42px; font-size: 1.15rem; }
+.visit-fields--locked .picker-icons,
+.visit-fields--locked .picker-diameters { opacity: 0.5; }
+.list-item__row { display: flex; align-items: center; gap: 10px; }
+.list-item__main { flex: 1; min-width: 0; }
+.list-item--locked { border-left: 4px solid #ffb74d; }
+
+/* ---------- Unlock dialog ---------- */
+.dialog {
+  border: none;
+  border-radius: var(--radius);
+  padding: 0;
+  width: min(92vw, 360px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+.dialog::backdrop { background: rgba(30, 28, 50, 0.45); }
+.dialog__form { padding: 18px; }
+.dialog__form h3 { margin: 0 0 6px; }

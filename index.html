@@ -88,9 +88,32 @@
     <!-- Tab: new reading -->
     <div class="tab-panel" data-panel="reading">
       <form id="form-visit" class="card">
+        <div id="visit-lock-bar" class="lock-bar" hidden>
+          <div class="lock-bar__info">
+            <div id="visit-saved-at" class="lock-bar__saved"></div>
+            <div id="visit-lock-status" class="lock-bar__status"></div>
+          </div>
+          <button type="button" id="btn-toggle-lock" class="lock-btn" aria-label="Lock / unlock this reading"></button>
+        </div>
+
+        <fieldset id="visit-fields" class="visit-fields">
         <label>Visit date
           <input type="date" id="visit-date" required />
         </label>
+
+        <div class="phase-field">
+          <span class="phase-field__label">Moment of the reading *</span>
+          <div class="phase-toggle" role="radiogroup" aria-label="Moment of the reading">
+            <label class="phase-option phase-option--before">
+              <input type="radio" name="visit-phase" value="before" />
+              <span>Before treatment</span>
+            </label>
+            <label class="phase-option phase-option--after">
+              <input type="radio" name="visit-phase" value="after" />
+              <span>After treatment</span>
+            </label>
+          </div>
+        </div>
 
         <p class="muted picker-hint">Tap a chakra on the diagram, then pick its spin shape and diameter.</p>
 
@@ -117,11 +140,12 @@
         <label>Session notes
           <textarea id="visit-notes" rows="3"></textarea>
         </label>
+        </fieldset>
 
         <div id="visit-summary" class="summary-box"></div>
 
         <div class="btn-row">
-          <button type="submit" class="btn btn--primary btn--block">Save reading</button>
+          <button type="submit" id="btn-save-visit" class="btn btn--primary btn--block">Save reading</button>
           <button type="button" id="btn-delete-visit" class="btn btn--danger btn--block" hidden>Delete this reading</button>
         </div>
       </form>
@@ -183,6 +207,25 @@
   </section>
 
 </main>
+
+<!-- Admin login used to unlock locked readings -->
+<dialog id="dialog-unlock" class="dialog">
+  <form id="form-unlock" class="dialog__form" autocomplete="off">
+    <h3>🔒 Unlock</h3>
+    <p id="unlock-message" class="muted"></p>
+    <label>Login
+      <input type="text" id="unlock-login" autocapitalize="off" autocorrect="off" spellcheck="false" />
+    </label>
+    <label>Password
+      <input type="password" id="unlock-password" inputmode="numeric" />
+    </label>
+    <p id="unlock-error" class="form-error" hidden>Wrong login or password.</p>
+    <div class="btn-row">
+      <button type="button" id="btn-unlock-cancel" class="btn btn--secondary">Cancel</button>
+      <button type="submit" class="btn btn--primary">Unlock</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>

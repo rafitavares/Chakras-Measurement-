@@ -15,7 +15,8 @@ import { exportClientCSV, exportClientJSON } from './export.js';
 import { renderBodyMap } from './bodymap.js';
 import { buildSpinIcon } from './spinicons.js';
 import { generateClientReportPDF } from './report.js';
-import { showToast, confirmAction, formatDate, formatNumber, el } from './ui.js';
+import { requestAdminUnlock } from './auth.js';
+import { showToast, confirmAction, formatDate, formatDateTime, formatNumber, el } from './ui.js';
 
 const SPIN_LABEL_BY_CODE = Object.fromEntries(SPIN_OPTIONS.map((o) => [o.code, o.label]));
 const SPIN_GROUPS = [
@@ -125,6 +126,7 @@ document.getElementById('input-import-backup').addEventListener('change', async 
   e.target.value = '';
   if (!file) return;
   if (!confirmAction('Importing will REPLACE all data saved on this device with the data from the chosen file. Continue?')) return;
+  if (anyLockedReadings() && !(await requestAdminUnlock('This device has locked readings. Enter the administrator login to replace them with the backup.'))) return;
   try {
     const count = await importAllBackup(file);
     showToast(`Backup imported: ${count} client(s).`, 'success');
@@ -133,6 +135,10 @@ document.getElementById('input-import-backup').addEventListener('change', async 
     showToast(err.message || 'Error importing backup.', 'error');
   }
 });
+
+function anyLockedReadings() {
+  return ClientsAPI.listClients().some((c) => (VisitsAPI.listVisits(c.id) || []).some((v) => v.locked));
+}
 
 // ---------- Client form ----------
 
@@ -362,8 +368,10 @@ document.getElementById('btn-edit-client').addEventListener('click', () => {
   openClientForm(state.currentClient, 'info');
 });
 
-document.getElementById('btn-delete-client').addEventListener('click', () => {
+document.getElementById('btn-delete-client').addEventListener('click', async () => {
   if (!confirmAction(`Delete "${state.currentClient.name}" and their entire history? This cannot be undone.`)) return;
+  if (state.visits.some((v) => v.locked)
+    && !(await requestAdminUnlock('This client has locked readings. Enter the administrator login to delete them.'))) return;
   ClientsAPI.deleteClient(state.currentClientId);
   showToast('Client deleted.', 'success');
   goToClientsList();
@@ -399,6 +407,8 @@ const visitEdit = {
   spins: {},
   diameters: {},
   activeChakra: CHAKRA_ORDER[0],
+  locked: false,
+  savedAt: null,
 };
 
 function selectChakra(chakra) {
@@ -406,12 +416,18 @@ function selectChakra(chakra) {
   renderReadingUI();
 }
 
+function warnLocked() {
+  showToast('This reading is locked. Tap the padlock to unlock it.', 'error');
+}
+
 function setSpin(chakra, code) {
+  if (visitEdit.locked) return warnLocked();
   visitEdit.spins[chakra] = code;
   renderReadingUI();
 }
 
 function setDiameter(chakra, value) {
+  if (visitEdit.locked) return warnLocked();
   if (value === undefined) delete visitEdit.diameters[chakra];
   else visitEdit.diameters[chakra] = value;
   renderReadingUI();
@@ -492,6 +508,7 @@ function renderReadingUI() {
   document.getElementById('picker-progress').textContent = `${count} of 12 chakras set`;
 
   renderSummaryBox();
+  renderLockState();
   renderBodyMap(document.getElementById('bodymap-container'), visitEdit.spins, state.currentClient?.sex, {
     activeChakra: visitEdit.activeChakra,
     onSelectChakra: selectChakra,
@@ -507,14 +524,87 @@ document.getElementById('btn-next-chakra').addEventListener('click', () => {
   selectChakra(CHAKRA_ORDER[(idx + 1) % CHAKRA_ORDER.length]);
 });
 
+// ---------- Before / after treatment ----------
+
+function getPhase() {
+  return document.querySelector('input[name="visit-phase"]:checked')?.value || null;
+}
+
+function setPhase(phase) {
+  document.querySelectorAll('input[name="visit-phase"]').forEach((r) => {
+    r.checked = r.value === phase;
+  });
+}
+
+/** For a new reading: "before" by default, "after" if today's "before" already exists. */
+function suggestedPhase() {
+  const today = todayISO();
+  const todays = state.visits.filter((v) => v.date === today);
+  return todays.some((v) => v.phase === 'before') && !todays.some((v) => v.phase === 'after') ? 'after' : 'before';
+}
+
+const PHASE_LABELS = { before: 'Before treatment', after: 'After treatment' };
+
+// ---------- Lock ----------
+
+function renderLockState() {
+  const isSaved = !!visitEdit.visitId;
+  const locked = visitEdit.locked;
+  const bar = document.getElementById('visit-lock-bar');
+  bar.hidden = !isSaved;
+  bar.classList.toggle('lock-bar--locked', locked);
+  document.getElementById('visit-saved-at').textContent = visitEdit.savedAt
+    ? `Saved on ${formatDateTime(visitEdit.savedAt)}`
+    : 'Saved (time not recorded — reading from an older version)';
+  document.getElementById('visit-lock-status').textContent = locked
+    ? 'Locked — tap the padlock and log in to edit'
+    : 'Unlocked — tap the padlock to lock it';
+  const lockBtn = document.getElementById('btn-toggle-lock');
+  lockBtn.textContent = locked ? '🔒' : '🔓';
+  lockBtn.title = locked ? 'Unlock (requires login)' : 'Lock this reading';
+
+  document.getElementById('visit-fields').classList.toggle('visit-fields--locked', locked);
+  document.getElementById('visit-date').disabled = locked;
+  document.getElementById('visit-notes').disabled = locked;
+  document.querySelectorAll('input[name="visit-phase"]').forEach((r) => { r.disabled = locked; });
+  document.getElementById('btn-save-visit').hidden = locked;
+  document.getElementById('btn-delete-visit').hidden = !isSaved || locked;
+}
+
+/** Locks, or (after a successful admin login) unlocks, a saved reading. */
+async function toggleVisitLock(visitId, currentlyLocked) {
+  if (currentlyLocked) {
+    if (!(await requestAdminUnlock('Enter the administrator login to unlock this reading.'))) return false;
+    VisitsAPI.setVisitLocked(state.currentClientId, visitId, false);
+    showToast('Reading unlocked.', 'success');
+  } else {
+    VisitsAPI.setVisitLocked(state.currentClientId, visitId, true);
+    showToast('Reading locked.', 'success');
+  }
+  state.visits = VisitsAPI.listVisits(state.currentClientId);
+  if (visitEdit.visitId === visitId) {
+    visitEdit.locked = !currentlyLocked;
+    renderReadingUI();
+  }
+  renderHistoryTab();
+  return true;
+}
+
+document.getElementById('btn-toggle-lock').addEventListener('click', () => {
+  if (!visitEdit.visitId) return;
+  toggleVisitLock(visitEdit.visitId, visitEdit.locked);
+});
+
 function resetVisitForm() {
   visitEdit.visitId = null;
   visitEdit.spins = {};
   visitEdit.diameters = {};
   visitEdit.activeChakra = CHAKRA_ORDER[0];
+  visitEdit.locked = false;
+  visitEdit.savedAt = null;
   document.getElementById('visit-date').value = todayISO();
+  setPhase(suggestedPhase());
   document.getElementById('visit-notes').value = '';
-  document.getElementById('btn-delete-visit').hidden = true;
   renderReadingUI();
 }
 
@@ -523,9 +613,11 @@ function openVisitForEdit(visit) {
   visitEdit.spins = { ...(visit.spins || {}) };
   visitEdit.diameters = { ...(visit.diameters || {}) };
   visitEdit.activeChakra = CHAKRA_ORDER[0];
+  visitEdit.locked = !!visit.locked;
+  visitEdit.savedAt = visit.savedAt || visit.createdAt || null;
   document.getElementById('visit-date').value = visit.date;
+  setPhase(visit.phase || null);
   document.getElementById('visit-notes').value = visit.notes || '';
-  document.getElementById('btn-delete-visit').hidden = false;
   renderReadingUI();
   switchClientTab('reading');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -533,20 +625,27 @@ function openVisitForEdit(visit) {
 
 document.getElementById('form-visit').addEventListener('submit', (e) => {
   e.preventDefault();
+  if (visitEdit.locked) return warnLocked();
   const totals = computeVisitTotals(visitEdit.spins);
   if (!totals.complete) {
     showToast('Pick the spin shape for all 12 chakras before saving.', 'error');
     return;
   }
+  const phase = getPhase();
+  if (!phase) {
+    showToast('Choose "Before treatment" or "After treatment".', 'error');
+    return;
+  }
   const data = {
     date: document.getElementById('visit-date').value,
+    phase,
     spins: visitEdit.spins,
     diameters: visitEdit.diameters,
     notes: document.getElementById('visit-notes').value,
   };
   try {
     if (visitEdit.visitId) {
-      VisitsAPI.updateVisit(state.currentClientId, visitEdit.visitId, data);
+      if (!VisitsAPI.updateVisit(state.currentClientId, visitEdit.visitId, data)) return warnLocked();
     } else {
       VisitsAPI.createVisit(state.currentClientId, data);
     }
@@ -563,8 +662,9 @@ document.getElementById('form-visit').addEventListener('submit', (e) => {
 
 document.getElementById('btn-delete-visit').addEventListener('click', () => {
   if (!visitEdit.visitId) return;
+  if (visitEdit.locked) return warnLocked();
   if (!confirmAction('Delete this reading?')) return;
-  VisitsAPI.deleteVisit(state.currentClientId, visitEdit.visitId);
+  if (!VisitsAPI.deleteVisit(state.currentClientId, visitEdit.visitId)) return warnLocked();
   showToast('Reading deleted.', 'success');
   state.visits = VisitsAPI.listVisits(state.currentClientId);
   syncClientStats();
@@ -596,19 +696,35 @@ function renderHistoryTab() {
     const dominantText = totals.dominant.map((d) => DOMAIN_LABELS[d]).join(' + ');
 
     const badges = el('div', { class: 'list-item__badges' }, [
+      visit.phase ? el('span', { class: `badge badge--phase-${visit.phase}` }, PHASE_LABELS[visit.phase]) : null,
       el('span', { class: 'badge' }, `NEI ${formatNumber(totals.nei)}`),
       el('span', { class: 'badge' }, `TNDC ${totals.tndc}`),
       el('span', { class: `badge badge--${totals.dominant[0].toLowerCase()}` }, dominantText),
     ]);
 
     const metaParts = [formatDate(visit.date)];
-    if (ascIndex > 0) {
+    if (ascIndex > 0 && state.visits[ascIndex - 1].date !== visit.date) {
       const prev = state.visits[ascIndex - 1];
       metaParts.push(`${weeksBetween(prev.date, visit.date)} week(s) since previous`);
     }
 
-    const item = el('div', { class: 'list-item', onClick: () => openVisitForEdit(visit) }, [
-      el('div', { class: 'list-item__title' }, metaParts.join(' · ')),
+    const savedAt = visit.savedAt || visit.createdAt;
+    const lockBtn = el('button', {
+      type: 'button',
+      class: `lock-btn lock-btn--sm${visit.locked ? ' lock-btn--locked' : ''}`,
+      title: visit.locked ? 'Locked — tap to unlock (requires login)' : 'Tap to lock this reading',
+      'aria-label': visit.locked ? 'Unlock reading' : 'Lock reading',
+      onClick: (e) => { e.stopPropagation(); toggleVisitLock(visit.id, !!visit.locked); },
+    }, visit.locked ? '🔒' : '🔓');
+
+    const item = el('div', { class: `list-item${visit.locked ? ' list-item--locked' : ''}`, onClick: () => openVisitForEdit(visit) }, [
+      el('div', { class: 'list-item__row' }, [
+        el('div', { class: 'list-item__main' }, [
+          el('div', { class: 'list-item__title' }, metaParts.join(' · ')),
+          savedAt ? el('div', { class: 'list-item__meta' }, `Saved ${formatDateTime(savedAt)}`) : null,
+        ]),
+        lockBtn,
+      ]),
       badges,
     ]);
     list.appendChild(item);

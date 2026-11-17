@@ -24,6 +24,15 @@ export function formatDate(isoDate) {
   return `${d}/${m}/${y}`;
 }
 
+/** ISO timestamp → "dd/mm/yyyy hh:mm" in the device's local time. */
+export function formatDateTime(isoTimestamp) {
+  if (!isoTimestamp) return '—';
+  const d = new Date(isoTimestamp);
+  if (Number.isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function formatNumber(n, decimals = 1) {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
   return n.toFixed(decimals);
